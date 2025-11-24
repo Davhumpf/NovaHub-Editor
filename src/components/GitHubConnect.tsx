@@ -20,6 +20,7 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
   } = useEditorStore();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (session && status === 'authenticated') {
@@ -27,8 +28,19 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
     }
   }, [session, status, fetchRepositories]);
 
-  const handleSignIn = () => {
-    signIn('github');
+  const handleSignIn = async () => {
+    try {
+      setAuthError(null);
+      const result = await signIn('github', { redirect: false });
+
+      if (result?.error) {
+        console.error('Error de autenticación:', result.error);
+        setAuthError('Error al conectar con GitHub. Por favor, intenta nuevamente.');
+      }
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+      setAuthError('Error inesperado. Por favor, verifica tu conexión e intenta nuevamente.');
+    }
   };
 
   const handleSignOut = () => {
@@ -81,6 +93,12 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
               <li>• Sincronización en tiempo real</li>
             </ul>
           </div>
+
+          {authError && (
+            <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 p-3">
+              <p className="text-xs text-red-400">{authError}</p>
+            </div>
+          )}
 
           <div className="mt-6 flex justify-between">
             <button

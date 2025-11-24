@@ -138,20 +138,32 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
 ## 🔮 Configuración de GitHub
 
+### ⚠️ Error "Server error - There is a problem with the server configuration"?
+
+Si recibes este error, **falta configurar `NEXTAUTH_SECRET`**. Sigue la guía de inicio rápido:
+
+📖 **[Solución Rápida (5 minutos)](./QUICK_START_OAUTH.md)** ⭐ **¡EMPIEZA AQUÍ!**
+
 ### Variables de Entorno
-Para usar la integración de GitHub, configura las siguientes variables en `.env.local`:
+
+Para usar la integración de GitHub, necesitas configurar **4 variables** en `.env.local`:
 
 ```bash
-# GitHub OAuth (requerido)
+# GitHub OAuth (obtén estas credenciales en GitHub)
 GITHUB_ID=tu_github_client_id
 GITHUB_SECRET=tu_github_client_secret
 
-# NextAuth (requerido)
+# NextAuth (genera un secret con: openssl rand -base64 32)
+NEXTAUTH_SECRET=tu_secret_generado_de_32_caracteres
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=tu_secret_key_generado
 ```
 
-📖 **[Guía completa de configuración](./README_GITHUB_INTEGRATION.md)**
+### 📚 Guías de Configuración
+
+- 🚀 **[Inicio Rápido OAuth](./QUICK_START_OAUTH.md)** - Configura OAuth en 5 minutos
+- 📖 **[Configuración Detallada de GitHub](./GITHUB_OAUTH_SETUP.md)** - Paso a paso completo
+- ☁️ **[Despliegue en Vercel](./VERCEL_DEPLOYMENT.md)** - Guía para producción
+- 🔧 **[Integración Completa de GitHub](./README_GITHUB_INTEGRATION.md)** - Documentación técnica
 
 ### Roadmap Técnico
 - ✅ Workspace web con UI similar a VS Code
@@ -184,6 +196,29 @@ Todos los datos (archivos, notas, historial) se almacenan localmente usando:
 **Nota**: Los datos persisten entre sesiones pero son locales al navegador. Para sincronización entre dispositivos, se implementará en futuras versiones.
 
 ## 🐛 Solución de Problemas
+
+### Error: "Server error - There is a problem with the server configuration"
+**Causa**: Falta `NEXTAUTH_SECRET` en las variables de entorno
+
+**Solución**:
+1. Genera un secret: `openssl rand -base64 32`
+2. Agrégalo a `.env.local`: `NEXTAUTH_SECRET=el_secret_generado`
+3. Reinicia el servidor: `npm run dev`
+
+📖 Ver guía completa: [QUICK_START_OAUTH.md](./QUICK_START_OAUTH.md)
+
+### Error: "The redirect_uri MUST match..."
+**Causa**: La callback URL en GitHub no coincide
+
+**Solución**:
+- Verifica que la callback URL sea: `http://localhost:3000/api/auth/callback/github`
+- NO incluyas esta ruta en `NEXTAUTH_URL`, solo usa: `http://localhost:3000`
+
+### No puedo conectarme con GitHub
+1. Verifica que las 4 variables de entorno estén en `.env.local`
+2. Revisa que no haya espacios en las variables: ✅ `VAR=value` ❌ `VAR = value`
+3. Reinicia el servidor después de modificar `.env.local`
+4. Revisa la consola del navegador (F12) para ver errores específicos
 
 ### El editor no carga
 - Asegúrate de tener JavaScript habilitado
