@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useEditorStore, GitHubFile } from '@/store/useEditorStore';
+import { getFileIcon } from '@/utils/fileIcons';
 
 interface FileTreeNode {
   name: string;
@@ -198,7 +199,7 @@ export default function FileTree() {
                 className="absolute h-px w-3 bg-zinc-700/50"
                 style={{
                   left: `${8 + (depth - 1) * 20}px`,
-                  top: '50%'
+                  top: '50%',
                 }}
               />
             )}
@@ -227,6 +228,8 @@ export default function FileTree() {
       );
     }
 
+    // icono dinámico para archivo
+    const ext = node.name.split('.').pop()?.toLowerCase() || '';
     return (
       <div key={node.path} className="relative">
         {indentGuides}
@@ -235,7 +238,7 @@ export default function FileTree() {
             className="absolute h-px w-3 bg-zinc-700/50"
             style={{
               left: `${8 + (depth - 1) * 20}px`,
-              top: '50%'
+              top: '50%',
             }}
           />
         )}
@@ -244,7 +247,7 @@ export default function FileTree() {
           className="relative flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-zinc-800"
           style={{ paddingLeft: `${indent + 8}px` }}
         >
-          <span className="text-zinc-400">📄</span>
+          {getFileIcon(ext)}
           <span className="truncate text-zinc-300">{node.name}</span>
         </button>
       </div>
@@ -276,7 +279,7 @@ export default function FileTree() {
   }
 
   return (
-    <div className="overflow-y-auto">
+    <div className="file-tree-container overflow-y-auto" style={{ maxHeight: '80vh' }}>
       <div className="space-y-0.5 p-2">
         {fileTree.map((node) => renderNode(node))}
       </div>
