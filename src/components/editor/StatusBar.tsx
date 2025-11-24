@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { VscError, VscWarning, VscGitBranch } from 'react-icons/vsc';
+import { VscError, VscWarning, VscSourceControl } from 'react-icons/vsc';
 import { StatusBarInfo } from '@/types/editor';
 
 interface StatusBarProps {
@@ -37,7 +37,7 @@ export default function StatusBar({ info, theme = 'dark' }: StatusBarProps) {
         {/* Git branch */}
         {gitBranch && (
           <div className="flex items-center gap-1 cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
-            <VscGitBranch className="h-3 w-3" />
+            <VscSourceControl className="h-3 w-3" />
             <span>{gitBranch}</span>
           </div>
         )}
