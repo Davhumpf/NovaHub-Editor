@@ -28,11 +28,16 @@ El botón "Docs" ahora tiene una doble funcionalidad:
    - Fechas de creación y modificación
    - Almacenamiento persistente local
 
-### 🔌 Integración con GitHub (Preparada)
-- Interfaz lista para conectar con GitHub OAuth
-- Estructura preparada para clonar y trabajar con repositorios
-- Sistema de estado para vincular cuentas
-- Preparado para futura implementación de commit/push
+### 🔌 Integración con GitHub (✅ IMPLEMENTADA)
+- **OAuth completo**: Conecta tu cuenta de GitHub de forma segura
+- **Explorador de repositorios**: Ve todos tus repositorios públicos y privados
+- **Navegación de archivos**: Explora el árbol completo de cualquier repositorio
+- **Edición en tiempo real**: Edita archivos directamente desde el navegador
+- **Commits y push**: Guarda tus cambios directamente en GitHub
+- **Detección de cambios**: Indicador visual de archivos modificados
+- **Gestión de sesiones**: Soporte multi-usuario con NextAuth
+
+📖 **[Ver documentación completa de GitHub](./README_GITHUB_INTEGRATION.md)**
 
 ## 📁 Estructura del Proyecto
 
@@ -131,25 +136,34 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 - Selecciona "Diario de notas"
 - Crea, edita o elimina notas según necesites
 
-## 🔮 Próximas Características
+## 🔮 Configuración de GitHub
 
-### GitHub OAuth
+### Variables de Entorno
+Para usar la integración de GitHub, configura las siguientes variables en `.env.local`:
+
 ```bash
-# Variables de entorno necesarias (futuro)
+# GitHub OAuth (requerido)
 GITHUB_ID=tu_github_client_id
 GITHUB_SECRET=tu_github_client_secret
+
+# NextAuth (requerido)
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=tu_secret_key_generado
 ```
+
+📖 **[Guía completa de configuración](./README_GITHUB_INTEGRATION.md)**
 
 ### Roadmap Técnico
 - ✅ Workspace web con UI similar a VS Code
 - ✅ Editor funcional con soporte multi-lenguaje
 - ✅ Sistema de historial de archivos
 - ✅ Diario de notas personal
-- 🚧 Integración completa con GitHub OAuth
-- 🚧 Clonar repositorios desde GitHub
-- 🚧 Commit y push directamente desde el editor
+- ✅ Integración completa con GitHub OAuth
+- ✅ Explorar repositorios desde GitHub
+- ✅ Editar archivos de repositorios
+- ✅ Commit y push directamente desde el editor
+- ⏳ Crear nuevos archivos en repositorios
+- ⏳ Gestión de ramas
 - ⏳ Ejecutar código en workers/containers aislados
 - ⏳ Compartir sesiones y presencia en tiempo real
 - ⏳ Pipelines declarativos: lint, test, build
