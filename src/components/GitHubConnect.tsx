@@ -31,12 +31,8 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
   const handleSignIn = async () => {
     try {
       setAuthError(null);
-      const result = await signIn('github', { redirect: false });
-
-      if (result?.error) {
-        console.error('Error de autenticación:', result.error);
-        setAuthError('Error al conectar con GitHub. Por favor, intenta nuevamente.');
-      }
+      // Redirect to GitHub OAuth - this will navigate away from the page
+      await signIn('github', { callbackUrl: '/workspace' });
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
       setAuthError('Error inesperado. Por favor, verifica tu conexión e intenta nuevamente.');
