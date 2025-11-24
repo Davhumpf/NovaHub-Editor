@@ -95,6 +95,12 @@ interface EditorState {
     sha?: string,
     branch?: string
   ) => Promise<boolean>;
+  createFile: (
+    owner: string,
+    repo: string,
+    folderPath: string,
+    fileName: string
+  ) => Promise<void>;
 
   // Actions for notes
   addNote: (title: string, content: string) => void;
@@ -280,6 +286,34 @@ export const useEditorStore = create<EditorState>()(
         } catch (error) {
           console.error('Error saving file to GitHub:', error);
           return false;
+        }
+      },
+
+      // NUEVA ACCION: Crear archivos en el repo (usa tu propia API/backend si lo modificas)
+      createFile: async (
+        owner: string,
+        repo: string,
+        folderPath: string,
+        fileName: string
+      ) => {
+        try {
+          const fullPath = folderPath ? `${folderPath}/${fileName}` : fileName;
+          const response = await fetch('/api/github/file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              owner,
+              repo,
+              path: fullPath,
+              content: '', // contenido inicial vacío o como lo quieras
+              // Puedes agregar "message" si tu endpoint lo requiere, ej: "Creación de archivo"
+            }),
+          });
+          if (!response.ok) {
+            throw new Error('Failed to create file');
+          }
+        } catch (error) {
+          console.error('Error creating file:', error);
         }
       },
 
