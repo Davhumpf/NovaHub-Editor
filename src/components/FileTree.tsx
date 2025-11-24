@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useEditorStore, GitHubFile } from '@/store/useEditorStore';
-import { getFileIcon } from '@/utils/fileIcons';
+import { getFileIcon } from '@/utils/fileIcons'; // Asegúrate de tener esta función como se muestra abajo
 
 interface FileTreeNode {
   name: string;
@@ -51,7 +51,6 @@ export default function FileTree() {
     const root: FileTreeNode[] = [];
     const pathMap = new Map<string, FileTreeNode>();
 
-    // Create folder nodes
     folders.forEach((folder) => {
       const node: FileTreeNode = {
         name: folder.path.split('/').pop() || folder.path,
@@ -63,7 +62,6 @@ export default function FileTree() {
       pathMap.set(folder.path, node);
     });
 
-    // Create file nodes
     files.forEach((file) => {
       const node: FileTreeNode = {
         name: file.path.split('/').pop() || file.path,
@@ -75,7 +73,6 @@ export default function FileTree() {
       pathMap.set(file.path, node);
     });
 
-    // Build tree structure
     pathMap.forEach((node) => {
       const parentPath = node.path.split('/').slice(0, -1).join('/');
       if (parentPath) {
@@ -88,7 +85,6 @@ export default function FileTree() {
       }
     });
 
-    // Sort: folders first, then files alphabetically
     const sortNodes = (nodes: FileTreeNode[]) => {
       nodes.sort((a, b) => {
         if (a.type !== b.type) {
@@ -177,7 +173,6 @@ export default function FileTree() {
     const isExpanded = expandedFolders.has(node.path);
     const indent = depth * 20;
 
-    // Create indent guide lines
     const indentGuides = [];
     for (let i = 0; i < depth; i++) {
       indentGuides.push(
@@ -208,12 +203,8 @@ export default function FileTree() {
               className="relative flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-zinc-800"
               style={{ paddingLeft: `${indent + 8}px` }}
             >
-              <span className="text-zinc-400">
-                {isExpanded ? '▼' : '▶'}
-              </span>
-              <span className="text-zinc-400">
-                {isExpanded ? '📂' : '📁'}
-              </span>
+              <span className="text-zinc-400">{isExpanded ? '▼' : '▶'}</span>
+              <span className="text-zinc-400">{isExpanded ? '📂' : '📁'}</span>
               <span className="truncate text-zinc-300">{node.name}</span>
             </button>
           </div>
@@ -228,7 +219,6 @@ export default function FileTree() {
       );
     }
 
-    // icono dinámico para archivo
     const ext = node.name.split('.').pop()?.toLowerCase() || '';
     return (
       <div key={node.path} className="relative">
