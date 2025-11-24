@@ -23,6 +23,8 @@ export default function FileTree() {
     fetchRepoTree,
     fetchFileContent,
     openFile,
+    // Asegúrate de definir esta función en tu store:
+    createFile, // <-- función para crear archivos en el backend/github
   } = useEditorStore();
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -32,6 +34,13 @@ export default function FileTree() {
     position: { x: number; y: number };
     node?: FileTreeNode;
   }>({ visible: false, position: { x: 0, y: 0 } });
+
+  // Modal para crear archivo
+  const [createFileModal, setCreateFileModal] = useState<{
+    visible: boolean;
+    folderPath: string;
+  }>({ visible: false, folderPath: '' });
+  const [newFileName, setNewFileName] = useState('');
 
   useEffect(() => {
     if (currentRepo) {
@@ -188,16 +197,14 @@ export default function FileTree() {
     const items = [
       {
         label: 'Renombrar',
-        onClick: () => alert(`Renombrar ${node.name}`),
+        onClick: () => alert(`Renombrar ${node.name}`), // Puedes adaptar con modal igual que crear archivo
       },
       {
         label: node.type === 'folder' ? 'Nuevo archivo' : 'Eliminar',
         onClick: () =>
-          alert(
-            node.type === 'folder'
-              ? `Crear archivo dentro de ${node.name}`
-              : `Eliminar ${node.name}`
-          ),
+          node.type === 'folder'
+            ? setCreateFileModal({ visible: true, folderPath: node.path })
+            : alert(`Eliminar ${node.name}`), // Adaptar para eliminar real
       },
       {
         label: 'Copiar ruta',
@@ -206,6 +213,55 @@ export default function FileTree() {
     ];
     return items;
   };
+
+  // ---- Modal Crear Archivo ----
+  const handleCreateFile = async () => {
+    if (!newFileName || !currentRepo) return;
+    // Ejemplo de llamada: adapta a tu backend/API/store
+    await createFile(
+      currentRepo.owner.login,
+      currentRepo.name,
+      createFileModal.folderPath,
+      newFileName
+    );
+    // Opcional: limpiar y cerrar
+    setCreateFileModal({ visible: false, folderPath: '' });
+    setNewFileName('');
+    // Refresca árbol
+    fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+  };
+
+  // Render del modal
+  const renderCreateFileModal = () => (
+    createFileModal.visible && (
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div className="bg-zinc-900 p-6 rounded shadow-lg flex flex-col min-w-[300px]">
+          <h2 className="text-lg mb-4 text-zinc-200">Crear archivo en <span className="font-bold">{createFileModal.folderPath}</span></h2>
+          <input
+            className="mb-4 p-2 rounded bg-zinc-800 text-zinc-100"
+            type="text"
+            placeholder="Nombre del archivo"
+            value={newFileName}
+            onChange={e => setNewFileName(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <button
+              className="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700"
+              onClick={handleCreateFile}
+            >
+              Crear
+            </button>
+            <button
+              className="bg-zinc-700 px-4 py-2 rounded text-white hover:bg-zinc-800"
+              onClick={() => { setCreateFileModal({ visible: false, folderPath: '' }); setNewFileName(''); }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
 
   const renderNode = (node: FileTreeNode, depth = 0, isLast = false) => {
     const isExpanded = expandedFolders.has(node.path);
@@ -320,6 +376,7 @@ export default function FileTree() {
         options={contextMenu.node ? getContextOptions(contextMenu.node) : []}
         onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
       />
+      {renderCreateFileModal()}
     </>
   );
 }
