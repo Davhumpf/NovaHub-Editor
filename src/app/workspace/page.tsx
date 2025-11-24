@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import GitHubConnect from '@/components/GitHubConnect';
 import FileTree from '@/components/FileTree';
+import ExploreButton from '@/components/ExploreButton';
 
 // Monaco Editor - load dynamically to avoid SSR issues
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
@@ -496,24 +497,48 @@ export default function WorkspacePage() {
               />
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-zinc-500">
-                <p className="text-lg">Bienvenido a Novahub Editor</p>
-                <p className="mt-2 text-sm">
-                  Conecta GitHub o crea un archivo para comenzar
-                </p>
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => setShowGitHubModal(true)}
-                    className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
-                  >
-                    Conectar GitHub
-                  </button>
-                  <button
-                    onClick={() => setShowNewFileModal(true)}
-                    className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-                  >
-                    Crear archivo local
-                  </button>
-                </div>
+                {session?.user ? (
+                  // Usuario YA está conectado a GitHub
+                  <>
+                    <p className="text-2xl font-semibold text-white">
+                      ¡Hola @{session.user.username || session.user.name}! 👋
+                    </p>
+                    <p className="mt-2 text-sm">
+                      Explora tus proyectos y comienza a codear
+                    </p>
+                    <div className="mt-8 flex gap-4">
+                      <ExploreButton onClick={() => setShowGitHubModal(true)} />
+                      <button
+                        onClick={() => setShowNewFileModal(true)}
+                        className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                      >
+                        Crear archivo local
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  // Usuario NO está conectado
+                  <>
+                    <p className="text-lg">Bienvenido a Novahub Editor</p>
+                    <p className="mt-2 text-sm">
+                      Conecta GitHub o crea un archivo para comenzar
+                    </p>
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={() => setShowGitHubModal(true)}
+                        className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
+                      >
+                        Conectar GitHub
+                      </button>
+                      <button
+                        onClick={() => setShowNewFileModal(true)}
+                        className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                      >
+                        Crear archivo local
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
