@@ -1,5 +1,5 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
-import GithubProvider from "next-auth/providers/github";
+import GithubProvider, { GithubProfile } from "next-auth/providers/github";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -12,29 +12,72 @@ export const authOptions: NextAuthOptions = {
           scope: "read:user user:email repo",
         },
       },
+      profile(profile: GithubProfile) {
+        return {
+          id: profile.id.toString(),
+          name: profile.name || profile.login,
+          email: profile.email,
+          image: profile.avatar_url,
+          username: profile.login,
+          githubId: profile.id.toString(),
+          avatar: profile.avatar_url,
+        };
+      },
     }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile, user }) {
       // Persist the OAuth access_token and user info to the token right after signin
       if (account) {
         token.accessToken = account.access_token;
         token.githubId = account.providerAccountId;
       }
+
+      // When the user signs in, store the profile information
       if (profile) {
-        token.username = profile.login;
-        token.name = profile.name;
-        token.email = profile.email;
-        token.avatar = profile.avatar_url;
+        const githubProfile = profile as GithubProfile;
+        token.username = githubProfile.login;
+        token.name = githubProfile.name || githubProfile.login;
+        token.email = githubProfile.email || undefined;
+        token.avatar = githubProfile.avatar_url;
       }
+
+      // When the user object is available (from the profile function)
+      if (user) {
+        token.username = user.username;
+        token.githubId = user.githubId;
+        token.avatar = user.avatar;
+      }
+
       return token;
     },
     async session({ session, token }) {
       // Send properties to the client, like an access_token from a provider
-      session.accessToken = token.accessToken as string;
-      session.user.githubId = token.githubId as string;
-      session.user.username = token.username as string;
-      session.user.avatar = token.avatar as string;
+      if (token.accessToken) {
+        session.accessToken = token.accessToken as string;
+      }
+
+      if (token.githubId) {
+        session.user.githubId = token.githubId as string;
+      }
+
+      if (token.username) {
+        session.user.username = token.username as string;
+      }
+
+      if (token.avatar) {
+        session.user.avatar = token.avatar as string;
+      }
+
+      // Ensure name and email are passed from token
+      if (token.name) {
+        session.user.name = token.name as string;
+      }
+
+      if (token.email) {
+        session.user.email = token.email as string;
+      }
+
       return session;
     },
   },
