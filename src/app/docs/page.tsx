@@ -63,9 +63,11 @@ export default function DocsPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-3 hover:opacity-80">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-400 text-sm font-bold text-white shadow-lg shadow-indigo-500/25">
-                NH
-              </span>
+              <img
+                src="/logo.png"
+                alt="Novahub Logo"
+                className="h-9 w-9 rounded-xl object-cover shadow-lg"
+              />
               <div>
                 <p className="text-sm font-semibold">Novahub Editor</p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
