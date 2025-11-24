@@ -7,9 +7,7 @@ import {
   SiHtml5,
   SiCss3,
   SiPython,
-  SiJava,
   SiCplusplus,
-  SiCsharp,
   SiPhp,
   SiGo,
   SiRust,
@@ -31,9 +29,7 @@ export function getFileIcon(extension: string): JSX.Element {
     case 'html': return <SiHtml5 className="text-orange-600 h-4 w-4" />;
     case 'css':  return <SiCss3 className="text-blue-600 h-4 w-4" />;
     case 'py':   return <SiPython className="text-yellow-500 h-4 w-4" />;
-    case 'java': return <SiJava className="text-red-500 h-4 w-4" />;
     case 'cpp':  return <SiCplusplus className="text-blue-900 h-4 w-4" />;
-    case 'cs':   return <SiCsharp className="text-purple-700 h-4 w-4" />;
     case 'php':  return <SiPhp className="text-violet-400 h-4 w-4" />;
     case 'go':   return <SiGo className="text-cyan-500 h-4 w-4" />;
     case 'rs':   return <SiRust className="text-orange-700 h-4 w-4" />;
