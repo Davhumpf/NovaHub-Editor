@@ -172,26 +172,55 @@ export default function FileTree() {
     return langMap[ext || ''] || 'plaintext';
   };
 
-  const renderNode = (node: FileTreeNode, depth = 0) => {
+  const renderNode = (node: FileTreeNode, depth = 0, isLast = false) => {
     const isExpanded = expandedFolders.has(node.path);
-    const indent = depth * 16;
+    const indent = depth * 20;
+
+    // Create indent guide lines
+    const indentGuides = [];
+    for (let i = 0; i < depth; i++) {
+      indentGuides.push(
+        <div
+          key={`guide-${i}`}
+          className="absolute h-full w-px bg-zinc-700/50"
+          style={{ left: `${8 + i * 20}px` }}
+        />
+      );
+    }
 
     if (node.type === 'folder') {
       return (
         <div key={node.path}>
-          <button
-            onClick={() => toggleFolder(node.path)}
-            className="flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-zinc-800"
-            style={{ paddingLeft: `${indent + 8}px` }}
-          >
-            <span className="text-zinc-400">
-              {isExpanded ? '📂' : '📁'}
-            </span>
-            <span className="truncate text-zinc-300">{node.name}</span>
-          </button>
+          <div className="relative">
+            {indentGuides}
+            {depth > 0 && (
+              <div
+                className="absolute h-px w-3 bg-zinc-700/50"
+                style={{
+                  left: `${8 + (depth - 1) * 20}px`,
+                  top: '50%'
+                }}
+              />
+            )}
+            <button
+              onClick={() => toggleFolder(node.path)}
+              className="relative flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-zinc-800"
+              style={{ paddingLeft: `${indent + 8}px` }}
+            >
+              <span className="text-zinc-400">
+                {isExpanded ? '▼' : '▶'}
+              </span>
+              <span className="text-zinc-400">
+                {isExpanded ? '📂' : '📁'}
+              </span>
+              <span className="truncate text-zinc-300">{node.name}</span>
+            </button>
+          </div>
           {isExpanded && node.children && (
             <div>
-              {node.children.map((child) => renderNode(child, depth + 1))}
+              {node.children.map((child, index) =>
+                renderNode(child, depth + 1, index === node.children!.length - 1)
+              )}
             </div>
           )}
         </div>
@@ -199,15 +228,26 @@ export default function FileTree() {
     }
 
     return (
-      <button
-        key={node.path}
-        onClick={() => handleFileClick(node)}
-        className="flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-zinc-800"
-        style={{ paddingLeft: `${indent + 8}px` }}
-      >
-        <span className="text-zinc-400">📄</span>
-        <span className="truncate text-zinc-300">{node.name}</span>
-      </button>
+      <div key={node.path} className="relative">
+        {indentGuides}
+        {depth > 0 && (
+          <div
+            className="absolute h-px w-3 bg-zinc-700/50"
+            style={{
+              left: `${8 + (depth - 1) * 20}px`,
+              top: '50%'
+            }}
+          />
+        )}
+        <button
+          onClick={() => handleFileClick(node)}
+          className="relative flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-zinc-800"
+          style={{ paddingLeft: `${indent + 8}px` }}
+        >
+          <span className="text-zinc-400">📄</span>
+          <span className="truncate text-zinc-300">{node.name}</span>
+        </button>
+      </div>
     );
   };
 
