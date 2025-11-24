@@ -83,7 +83,9 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/workspace", // Redirect to workspace after sign in
+    error: "/workspace", // Redirect to workspace on error (we'll handle it client-side)
   },
+  debug: process.env.NODE_ENV === "development",
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
