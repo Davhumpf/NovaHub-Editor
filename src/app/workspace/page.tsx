@@ -8,6 +8,7 @@ import Link from 'next/link';
 import GitHubConnect from '@/components/GitHubConnect';
 import FileTree from '@/components/FileTree';
 import ExploreButton from '@/components/ExploreButton';
+import CodeBackgroundAnimation from '@/components/CodeBackgroundAnimation';
 
 // Monaco Editor - load dynamically to avoid SSR issues
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
@@ -254,8 +255,11 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex h-screen flex-col bg-zinc-950 text-white">
+      {/* Background animado */}
+      <CodeBackgroundAnimation />
+
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 py-2">
+      <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 py-2" style={{ position: 'relative', zIndex: 1 }}>
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-400 text-xs font-bold">
@@ -324,12 +328,14 @@ export default function WorkspacePage() {
               Guardar en GitHub
             </button>
           )}
-          <button
-            onClick={() => setShowGitHubModal(true)}
-            className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium hover:bg-zinc-700"
-          >
-            {currentRepo ? 'Cambiar repo' : 'Conectar GitHub'}
-          </button>
+          {!session?.user && (
+            <button
+              onClick={() => setShowGitHubModal(true)}
+              className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium hover:bg-zinc-700"
+            >
+              Conectar GitHub
+            </button>
+          )}
           <Link
             href="/docs"
             className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium hover:bg-zinc-700"
@@ -339,7 +345,7 @@ export default function WorkspacePage() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden" style={{ position: 'relative', zIndex: 1 }}>
         {/* Sidebar */}
         <aside className="w-64 border-r border-zinc-800 bg-zinc-900">
           {/* Tabs for switching between views */}
