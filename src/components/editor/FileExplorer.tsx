@@ -255,9 +255,16 @@ export default function FileExplorer({ theme = 'dark' }: FileExplorerProps) {
     const parentPath = node.path.split('/').slice(0, -1).join('/');
     const newPath = parentPath ? `${parentPath}/${renameValue}` : renameValue;
 
+    // Check if new name is same as old name
+    if (newPath === node.path) {
+      setRenameModal({ visible: false });
+      setRenameValue('');
+      return;
+    }
+
     setIsRenaming(true);
     try {
-      await renameFile(
+      const success = await renameFile(
         currentRepo.owner.login,
         currentRepo.name,
         node.path,
@@ -267,14 +274,18 @@ export default function FileExplorer({ theme = 'dark' }: FileExplorerProps) {
         currentRepo.default_branch
       );
 
-      setRenameModal({ visible: false });
-      setRenameValue('');
+      if (success) {
+        setRenameModal({ visible: false });
+        setRenameValue('');
 
-      setTimeout(() => {
-        fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
-      }, 800);
-    } catch (error) {
+        // Refresh the file tree immediately
+        await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+      } else {
+        alert('Failed to rename file. Please check if a file with that name already exists.');
+      }
+    } catch (error: any) {
       console.error('Error renaming file:', error);
+      alert(`Error renaming file: ${error.message || 'Unknown error'}`);
     } finally {
       setIsRenaming(false);
     }

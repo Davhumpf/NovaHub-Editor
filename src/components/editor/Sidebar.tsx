@@ -2,7 +2,12 @@
 
 import React from 'react';
 import { ActivityBarView } from '@/types/editor';
+import { useTheme } from '@/contexts/ThemeContext';
 import FileExplorer from './FileExplorer';
+import SearchPanel from '../panels/SearchPanel';
+import GitPanel from '../panels/GitPanel';
+import DebugPanel from '../panels/DebugPanel';
+import ExtensionsPanel from '../panels/ExtensionsPanel';
 import ResizeHandle from './ResizeHandle';
 
 interface SidebarProps {
@@ -15,59 +20,25 @@ interface SidebarProps {
 
 export default function Sidebar({
   activeView,
-  theme = 'dark',
+  theme: legacyTheme = 'dark',
   size,
   isResizing,
   onMouseDown,
 }: SidebarProps) {
+  const { theme } = useTheme();
+
   const renderContent = () => {
     switch (activeView) {
       case 'explorer':
-        return <FileExplorer theme={theme} />;
+        return <FileExplorer theme={legacyTheme} />;
       case 'search':
-        return (
-          <div
-            className={`
-              flex flex-col items-center justify-center h-full p-4
-              ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
-            `}
-          >
-            <p className="text-sm">Search (Coming soon)</p>
-          </div>
-        );
+        return <SearchPanel theme={legacyTheme} />;
       case 'git':
-        return (
-          <div
-            className={`
-              flex flex-col items-center justify-center h-full p-4
-              ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
-            `}
-          >
-            <p className="text-sm">Source Control (Coming soon)</p>
-          </div>
-        );
+        return <GitPanel theme={legacyTheme} />;
       case 'debug':
-        return (
-          <div
-            className={`
-              flex flex-col items-center justify-center h-full p-4
-              ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
-            `}
-          >
-            <p className="text-sm">Run & Debug (Coming soon)</p>
-          </div>
-        );
+        return <DebugPanel theme={legacyTheme} />;
       case 'extensions':
-        return (
-          <div
-            className={`
-              flex flex-col items-center justify-center h-full p-4
-              ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
-            `}
-          >
-            <p className="text-sm">Extensions (Coming soon)</p>
-          </div>
-        );
+        return <ExtensionsPanel theme={legacyTheme} />;
       default:
         return null;
     }
@@ -76,24 +47,20 @@ export default function Sidebar({
   return (
     <>
       <div
-        className={`
-          flex flex-col h-full
-          ${theme === 'dark' ? 'bg-[#252526]' : 'bg-[#f3f3f3]'}
-        `}
-        style={{ width: `${size}px` }}
+        className="flex flex-col h-full"
+        style={{
+          width: `${size}px`,
+          backgroundColor: theme.colors.sidebarBackground,
+        }}
       >
         {/* Header */}
         <div
-          className={`
-            px-4 py-2 border-b
-            ${theme === 'dark' ? 'border-[#2d2d2d]' : 'border-[#e5e5e5]'}
-          `}
+          className="px-4 py-2 border-b"
+          style={{ borderColor: theme.colors.sidebarBorder }}
         >
           <h2
-            className={`
-              text-xs font-semibold uppercase tracking-wide
-              ${theme === 'dark' ? 'text-[#cccccc]' : 'text-[#1e1e1e]'}
-            `}
+            className="text-xs font-semibold uppercase tracking-wide"
+            style={{ color: theme.colors.sidebarForeground }}
           >
             {activeView === 'explorer' && 'Explorer'}
             {activeView === 'search' && 'Search'}
