@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useEditorStore, GitHubFile } from '@/store/useEditorStore';
-import { getFileIcon } from '@/utils/fileIcons'; // Asegúrate de tener esta función como se muestra abajo
+import { getFileIcon } from '@/utils/fileIcons';
+import ContextMenu from './ContextMenu';
 
 interface FileTreeNode {
   name: string;
@@ -26,6 +27,11 @@ export default function FileTree() {
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    position: { x: number; y: number };
+    node?: FileTreeNode;
+  }>({ visible: false, position: { x: 0, y: 0 } });
 
   useEffect(() => {
     if (currentRepo) {
@@ -169,10 +175,41 @@ export default function FileTree() {
     return langMap[ext || ''] || 'plaintext';
   };
 
+  const showContextMenu = (e: React.MouseEvent, node: FileTreeNode) => {
+    e.preventDefault();
+    setContextMenu({
+      visible: true,
+      position: { x: e.clientX, y: e.clientY },
+      node,
+    });
+  };
+
+  const getContextOptions = (node: FileTreeNode) => {
+    const items = [
+      {
+        label: 'Renombrar',
+        onClick: () => alert(`Renombrar ${node.name}`),
+      },
+      {
+        label: node.type === 'folder' ? 'Nuevo archivo' : 'Eliminar',
+        onClick: () =>
+          alert(
+            node.type === 'folder'
+              ? `Crear archivo dentro de ${node.name}`
+              : `Eliminar ${node.name}`
+          ),
+      },
+      {
+        label: 'Copiar ruta',
+        onClick: () => navigator.clipboard.writeText(node.path),
+      },
+    ];
+    return items;
+  };
+
   const renderNode = (node: FileTreeNode, depth = 0, isLast = false) => {
     const isExpanded = expandedFolders.has(node.path);
     const indent = depth * 20;
-
     const indentGuides = [];
     for (let i = 0; i < depth; i++) {
       indentGuides.push(
@@ -200,6 +237,7 @@ export default function FileTree() {
             )}
             <button
               onClick={() => toggleFolder(node.path)}
+              onContextMenu={(e) => showContextMenu(e, node)}
               className="relative flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-zinc-800"
               style={{ paddingLeft: `${indent + 8}px` }}
             >
@@ -234,6 +272,7 @@ export default function FileTree() {
         )}
         <button
           onClick={() => handleFileClick(node)}
+          onContextMenu={(e) => showContextMenu(e, node)}
           className="relative flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-zinc-800"
           style={{ paddingLeft: `${indent + 8}px` }}
         >
@@ -269,10 +308,18 @@ export default function FileTree() {
   }
 
   return (
-    <div className="file-tree-container overflow-y-auto" style={{ maxHeight: '80vh' }}>
-      <div className="space-y-0.5 p-2">
-        {fileTree.map((node) => renderNode(node))}
+    <>
+      <div className="file-tree-container overflow-y-auto" style={{ maxHeight: '80vh' }}>
+        <div className="space-y-0.5 p-2">
+          {fileTree.map((node) => renderNode(node))}
+        </div>
       </div>
-    </div>
+      <ContextMenu
+        visible={contextMenu.visible}
+        position={contextMenu.position}
+        options={contextMenu.node ? getContextOptions(contextMenu.node) : []}
+        onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
+      />
+    </>
   );
 }
