@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   SiJavascript,
   SiTypescript,
@@ -18,7 +19,8 @@ import {
 } from 'react-icons/si';
 import { FaFileAlt } from 'react-icons/fa';
 
-export function getFileIcon(extension: string): JSX.Element {
+// Usa React.ReactNode como tipo de retorno
+export function getFileIcon(extension: string): React.ReactNode {
   switch (extension) {
     case 'js':   return <SiJavascript className="text-yellow-400 h-4 w-4" />;
     case 'ts':   return <SiTypescript className="text-blue-500 h-4 w-4" />;
