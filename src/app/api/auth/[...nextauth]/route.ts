@@ -8,7 +8,6 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GITHUB_SECRET || "",
       authorization: {
         params: {
-          // Request full repo access and user info
           scope: "read:user user:email repo",
         },
       },
@@ -27,13 +26,11 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, account, profile, user }) {
-      // Persist the OAuth access_token and user info to the token right after signin
+      // Persist the OAuth access_token and user info to the token
       if (account) {
         token.accessToken = account.access_token;
         token.githubId = account.providerAccountId;
       }
-
-      // When the user signs in, store the profile information
       if (profile) {
         const githubProfile = profile as GithubProfile;
         token.username = githubProfile.login;
@@ -41,14 +38,11 @@ export const authOptions: NextAuthOptions = {
         token.email = githubProfile.email || undefined;
         token.avatar = githubProfile.avatar_url;
       }
-
-      // When the user object is available (from the profile function)
       if (user) {
         token.username = user.username;
         token.githubId = user.githubId;
         token.avatar = user.avatar;
       }
-
       return token;
     },
     async session({ session, token }) {
@@ -56,39 +50,32 @@ export const authOptions: NextAuthOptions = {
       if (token.accessToken) {
         session.accessToken = token.accessToken as string;
       }
-
       if (token.githubId) {
         session.user.githubId = token.githubId as string;
       }
-
       if (token.username) {
         session.user.username = token.username as string;
       }
-
       if (token.avatar) {
         session.user.avatar = token.avatar as string;
       }
-
-      // Ensure name and email are passed from token
       if (token.name) {
         session.user.name = token.name as string;
       }
-
       if (token.email) {
         session.user.email = token.email as string;
       }
-
       return session;
     },
   },
   pages: {
     signIn: "/workspace", // Redirect to workspace after sign in
-    error: "/workspace", // Redirect to workspace on error (we'll handle it client-side)
+    error: "/workspace",  // Redirect to workspace on error
   },
   debug: process.env.NODE_ENV === "development",
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60, // 30 días
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
