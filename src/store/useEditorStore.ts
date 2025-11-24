@@ -22,9 +22,33 @@ export interface GitHubRepo {
   id: number;
   name: string;
   full_name: string;
-  owner: string;
+  owner: {
+    login: string;
+    avatar_url?: string;
+  };
   private: boolean;
   html_url: string;
+  description?: string;
+  default_branch: string;
+  language?: string;
+  updated_at?: string;
+}
+
+export interface GitHubFile {
+  path: string;
+  sha: string;
+  size?: number;
+  type: string;
+  url?: string;
+}
+
+export interface GitHubFileContent {
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  content: string;
+  url?: string;
 }
 
 interface EditorState {
@@ -38,6 +62,10 @@ interface EditorState {
   githubToken: string | null;
   githubRepos: GitHubRepo[];
   currentRepo: GitHubRepo | null;
+  repoFiles: GitHubFile[];
+  repoFolders: GitHubFile[];
+  isLoadingRepos: boolean;
+  isLoadingFiles: boolean;
 
   // Notes
   notes: NoteItem[];
@@ -55,6 +83,18 @@ interface EditorState {
   setGitHubToken: (token: string | null) => void;
   setGitHubRepos: (repos: GitHubRepo[]) => void;
   setCurrentRepo: (repo: GitHubRepo | null) => void;
+  fetchRepositories: () => Promise<void>;
+  fetchRepoTree: (owner: string, repo: string, branch?: string) => Promise<void>;
+  fetchFileContent: (owner: string, repo: string, path: string) => Promise<GitHubFileContent | null>;
+  saveFileToGitHub: (
+    owner: string,
+    repo: string,
+    path: string,
+    content: string,
+    message: string,
+    sha?: string,
+    branch?: string
+  ) => Promise<boolean>;
 
   // Actions for notes
   addNote: (title: string, content: string) => void;
@@ -73,6 +113,10 @@ export const useEditorStore = create<EditorState>()(
       githubToken: null,
       githubRepos: [],
       currentRepo: null,
+      repoFiles: [],
+      repoFolders: [],
+      isLoadingRepos: false,
+      isLoadingFiles: false,
       notes: [],
 
       // File actions
@@ -147,6 +191,96 @@ export const useEditorStore = create<EditorState>()(
 
       setCurrentRepo: (repo: GitHubRepo | null) => {
         set({ currentRepo: repo });
+      },
+
+      fetchRepositories: async () => {
+        set({ isLoadingRepos: true });
+        try {
+          const response = await fetch('/api/github/repos?per_page=100&sort=updated');
+          if (!response.ok) {
+            throw new Error('Failed to fetch repositories');
+          }
+          const data = await response.json();
+          set({ githubRepos: data.repos, isLoadingRepos: false });
+        } catch (error) {
+          console.error('Error fetching repositories:', error);
+          set({ isLoadingRepos: false });
+        }
+      },
+
+      fetchRepoTree: async (owner: string, repo: string, branch?: string) => {
+        set({ isLoadingFiles: true });
+        try {
+          const params = new URLSearchParams({ owner, repo });
+          if (branch) params.append('branch', branch);
+
+          const response = await fetch(`/api/github/tree?${params}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch repository tree');
+          }
+          const data = await response.json();
+          set({
+            repoFiles: data.files || [],
+            repoFolders: data.folders || [],
+            isLoadingFiles: false,
+          });
+        } catch (error) {
+          console.error('Error fetching repository tree:', error);
+          set({ isLoadingFiles: false });
+        }
+      },
+
+      fetchFileContent: async (owner: string, repo: string, path: string) => {
+        try {
+          const params = new URLSearchParams({ owner, repo, path });
+          const response = await fetch(`/api/github/file?${params}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch file content');
+          }
+          const data = await response.json();
+          return data as GitHubFileContent;
+        } catch (error) {
+          console.error('Error fetching file content:', error);
+          return null;
+        }
+      },
+
+      saveFileToGitHub: async (
+        owner: string,
+        repo: string,
+        path: string,
+        content: string,
+        message: string,
+        sha?: string,
+        branch?: string
+      ) => {
+        try {
+          const response = await fetch('/api/github/commit', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              owner,
+              repo,
+              path,
+              content,
+              message,
+              sha,
+              branch,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save file');
+          }
+
+          return true;
+        } catch (error) {
+          console.error('Error saving file to GitHub:', error);
+          return false;
+        }
       },
 
       // Notes actions
