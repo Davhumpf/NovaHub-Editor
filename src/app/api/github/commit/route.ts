@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { owner, repo, path, content, message, branch, sha } = body;
 
-    if (!owner || !repo || !path || !content || !message) {
+    if (!owner || !repo || !path || content === undefined || content === null || !message) {
       return NextResponse.json(
         {
           error: "Missing required fields: owner, repo, path, content, message",

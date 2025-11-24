@@ -99,8 +99,9 @@ interface EditorState {
     owner: string,
     repo: string,
     folderPath: string,
-    fileName: string
-  ) => Promise<void>;
+    fileName: string,
+    branch?: string
+  ) => Promise<boolean>;
   deleteFile: (
     owner: string,
     repo: string,
@@ -311,27 +312,33 @@ export const useEditorStore = create<EditorState>()(
         owner: string,
         repo: string,
         folderPath: string,
-        fileName: string
+        fileName: string,
+        branch?: string
       ) => {
-        try {
-          const fullPath = folderPath ? `${folderPath}/${fileName}` : fileName;
-          const response = await fetch('/api/github/commit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              owner,
-              repo,
-              path: fullPath,
-              content: '', // contenido inicial vacío
-              message: `Create ${fileName}`,
-            }),
-          });
-          if (!response.ok) {
-            throw new Error('Failed to create file');
-          }
-        } catch (error) {
-          console.error('Error creating file:', error);
+        const fullPath = folderPath ? `${folderPath.replace(/\/$/, '')}/${fileName}` : fileName;
+        console.log('[createFile] -> sending', { owner, repo, fullPath, branch });
+
+        const response = await fetch('/api/github/commit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            owner,
+            repo,
+            path: fullPath,
+            content: '\n', // evita validaciones de falsy y crea archivo vacio
+            message: `Create ${fileName}`,
+            branch,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          console.error('[createFile] failed', response.status, error);
+          throw new Error(error.error || 'Failed to create file');
         }
+
+        console.log('[createFile] success', await response.json());
+        return true;
       },
 
       // Eliminar archivo de GitHub

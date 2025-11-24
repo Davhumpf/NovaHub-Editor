@@ -272,25 +272,24 @@ export default function FileTree() {
 
     setIsCreating(true);
     try {
+      console.log('[UI createFile] start', { folder: createFileModal.folderPath, file: newFileName });
       await createFile(
         currentRepo.owner.login,
         currentRepo.name,
         createFileModal.folderPath,
-        newFileName
+        newFileName,
+        currentRepo.default_branch
       );
+
+      await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
 
       setCreateFileModal({ visible: false, folderPath: '' });
       setNewFileName('');
 
-      // Refresca árbol
-      setTimeout(() => {
-        fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
-      }, 800);
-
       alert(`✅ Archivo "${newFileName}" creado exitosamente`);
     } catch (error) {
-      console.error('Error creating file:', error);
-      alert('❌ Error al crear el archivo. Por favor intenta de nuevo.');
+      console.error('[UI createFile] error', error);
+      alert('❌ Error al crear el archivo. Revisa la consola para más detalles.');
     } finally {
       setIsCreating(false);
     }
