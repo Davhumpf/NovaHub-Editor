@@ -168,12 +168,12 @@ export default function Home() {
             <button className="rounded-full px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
               Roadmap
             </button>
-            <button className="rounded-full px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+            <a href="/docs" className="rounded-full px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
               Docs
-            </button>
-            <button className="rounded-full bg-zinc-900 px-4 py-2 text-white shadow-sm hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
+            </a>
+            <a href="/workspace" className="rounded-full bg-zinc-900 px-4 py-2 text-white shadow-sm hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
               Abrir workspace
-            </button>
+            </a>
           </div>
         </div>
       </header>
@@ -194,12 +194,12 @@ export default function Home() {
               elige el runtime y dale build: el resto es automático.
             </p>
             <div className="flex flex-wrap gap-3 text-sm font-medium">
-              <button className="rounded-full bg-zinc-900 px-5 py-2 text-white shadow-sm hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
+              <a href="/workspace" className="rounded-full bg-zinc-900 px-5 py-2 text-white shadow-sm hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
                 Crear workspace
-              </button>
-              <button className="rounded-full border border-zinc-300 px-5 py-2 text-zinc-800 hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800">
-                Ver demos
-              </button>
+              </a>
+              <a href="/docs" className="rounded-full border border-zinc-300 px-5 py-2 text-zinc-800 hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800">
+                Ver historial y notas
+              </a>
               <button className="rounded-full bg-emerald-500/15 px-4 py-2 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-500/20 dark:text-emerald-300 dark:ring-emerald-500/30">
                 Cloud sandbox incluida
               </button>
