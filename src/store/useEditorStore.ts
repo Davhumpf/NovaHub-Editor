@@ -101,6 +101,23 @@ interface EditorState {
     folderPath: string,
     fileName: string
   ) => Promise<void>;
+  deleteFile: (
+    owner: string,
+    repo: string,
+    path: string,
+    message: string,
+    sha: string,
+    branch?: string
+  ) => Promise<boolean>;
+  renameFile: (
+    owner: string,
+    repo: string,
+    oldPath: string,
+    newPath: string,
+    message: string,
+    sha: string,
+    branch?: string
+  ) => Promise<boolean>;
 
   // Actions for notes
   addNote: (title: string, content: string) => void;
@@ -289,7 +306,7 @@ export const useEditorStore = create<EditorState>()(
         }
       },
 
-      // NUEVA ACCION: Crear archivos en el repo (usa tu propia API/backend si lo modificas)
+      // NUEVA ACCION: Crear archivos en el repo
       createFile: async (
         owner: string,
         repo: string,
@@ -298,15 +315,15 @@ export const useEditorStore = create<EditorState>()(
       ) => {
         try {
           const fullPath = folderPath ? `${folderPath}/${fileName}` : fileName;
-          const response = await fetch('/api/github/file', {
+          const response = await fetch('/api/github/commit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               owner,
               repo,
               path: fullPath,
-              content: '', // contenido inicial vacío o como lo quieras
-              // Puedes agregar "message" si tu endpoint lo requiere, ej: "Creación de archivo"
+              content: '', // contenido inicial vacío
+              message: `Create ${fileName}`,
             }),
           });
           if (!response.ok) {
@@ -314,6 +331,82 @@ export const useEditorStore = create<EditorState>()(
           }
         } catch (error) {
           console.error('Error creating file:', error);
+        }
+      },
+
+      // Eliminar archivo de GitHub
+      deleteFile: async (
+        owner: string,
+        repo: string,
+        path: string,
+        message: string,
+        sha: string,
+        branch?: string
+      ) => {
+        try {
+          const response = await fetch('/api/github/delete', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              owner,
+              repo,
+              path,
+              message,
+              sha,
+              branch,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete file');
+          }
+
+          return true;
+        } catch (error) {
+          console.error('Error deleting file from GitHub:', error);
+          return false;
+        }
+      },
+
+      // Renombrar archivo en GitHub
+      renameFile: async (
+        owner: string,
+        repo: string,
+        oldPath: string,
+        newPath: string,
+        message: string,
+        sha: string,
+        branch?: string
+      ) => {
+        try {
+          const response = await fetch('/api/github/rename', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              owner,
+              repo,
+              oldPath,
+              newPath,
+              message,
+              sha,
+              branch,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to rename file');
+          }
+
+          return true;
+        } catch (error) {
+          console.error('Error renaming file in GitHub:', error);
+          return false;
         }
       },
 

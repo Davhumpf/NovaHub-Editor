@@ -23,8 +23,9 @@ export default function FileTree() {
     fetchRepoTree,
     fetchFileContent,
     openFile,
-    // Asegúrate de definir esta función en tu store:
-    createFile, // <-- función para crear archivos en el backend/github
+    createFile,
+    deleteFile,
+    renameFile,
   } = useEditorStore();
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -41,6 +42,19 @@ export default function FileTree() {
     folderPath: string;
   }>({ visible: false, folderPath: '' });
   const [newFileName, setNewFileName] = useState('');
+
+  // Modal para renombrar
+  const [renameModal, setRenameModal] = useState<{
+    visible: boolean;
+    node?: FileTreeNode;
+  }>({ visible: false });
+  const [renameValue, setRenameValue] = useState('');
+
+  // Modal para eliminar
+  const [deleteModal, setDeleteModal] = useState<{
+    visible: boolean;
+    node?: FileTreeNode;
+  }>({ visible: false });
 
   useEffect(() => {
     if (currentRepo) {
@@ -193,69 +207,234 @@ export default function FileTree() {
     });
   };
 
+  const handleRenameClick = (node: FileTreeNode) => {
+    setRenameModal({ visible: true, node });
+    setRenameValue(node.name);
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+  };
+
+  const handleDeleteClick = (node: FileTreeNode) => {
+    setDeleteModal({ visible: true, node });
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+  };
+
   const getContextOptions = (node: FileTreeNode) => {
-    const items = [
+    if (node.type === 'folder') {
+      return [
+        {
+          label: 'Nuevo archivo',
+          onClick: () => {
+            setCreateFileModal({ visible: true, folderPath: node.path });
+            setContextMenu((prev) => ({ ...prev, visible: false }));
+          },
+        },
+        {
+          label: 'Copiar ruta',
+          onClick: () => {
+            navigator.clipboard.writeText(node.path);
+            setContextMenu((prev) => ({ ...prev, visible: false }));
+          },
+        },
+      ];
+    }
+
+    return [
       {
         label: 'Renombrar',
-        onClick: () => alert(`Renombrar ${node.name}`), // Puedes adaptar con modal igual que crear archivo
+        onClick: () => handleRenameClick(node),
       },
       {
-        label: node.type === 'folder' ? 'Nuevo archivo' : 'Eliminar',
-        onClick: () =>
-          node.type === 'folder'
-            ? setCreateFileModal({ visible: true, folderPath: node.path })
-            : alert(`Eliminar ${node.name}`), // Adaptar para eliminar real
+        label: 'Eliminar',
+        onClick: () => handleDeleteClick(node),
       },
       {
         label: 'Copiar ruta',
-        onClick: () => navigator.clipboard.writeText(node.path),
+        onClick: () => {
+          navigator.clipboard.writeText(node.path);
+          setContextMenu((prev) => ({ ...prev, visible: false }));
+        },
       },
     ];
-    return items;
   };
 
   // ---- Modal Crear Archivo ----
   const handleCreateFile = async () => {
     if (!newFileName || !currentRepo) return;
-    // Ejemplo de llamada: adapta a tu backend/API/store
+
     await createFile(
       currentRepo.owner.login,
       currentRepo.name,
       createFileModal.folderPath,
       newFileName
     );
-    // Opcional: limpiar y cerrar
+
     setCreateFileModal({ visible: false, folderPath: '' });
     setNewFileName('');
+
     // Refresca árbol
-    fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+    setTimeout(() => {
+      fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+    }, 500);
   };
 
-  // Render del modal
+  // ---- Modal Renombrar ----
+  const handleRenameFile = async () => {
+    if (!renameValue || !renameModal.node || !currentRepo) return;
+
+    const node = renameModal.node;
+    const parentPath = node.path.split('/').slice(0, -1).join('/');
+    const newPath = parentPath ? `${parentPath}/${renameValue}` : renameValue;
+
+    const success = await renameFile(
+      currentRepo.owner.login,
+      currentRepo.name,
+      node.path,
+      newPath,
+      `Rename ${node.name} to ${renameValue}`,
+      node.sha!,
+      currentRepo.default_branch
+    );
+
+    if (success) {
+      setRenameModal({ visible: false });
+      setRenameValue('');
+
+      // Refresca árbol
+      setTimeout(() => {
+        fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+      }, 500);
+    } else {
+      alert('Error al renombrar el archivo');
+    }
+  };
+
+  // ---- Modal Eliminar ----
+  const handleDeleteFile = async () => {
+    if (!deleteModal.node || !currentRepo) return;
+
+    const node = deleteModal.node;
+    const success = await deleteFile(
+      currentRepo.owner.login,
+      currentRepo.name,
+      node.path,
+      `Delete ${node.name}`,
+      node.sha!,
+      currentRepo.default_branch
+    );
+
+    if (success) {
+      setDeleteModal({ visible: false });
+
+      // Refresca árbol
+      setTimeout(() => {
+        fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+      }, 500);
+    } else {
+      alert('Error al eliminar el archivo');
+    }
+  };
+
   const renderCreateFileModal = () => (
     createFileModal.visible && (
       <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-        <div className="bg-zinc-900 p-6 rounded shadow-lg flex flex-col min-w-[300px]">
-          <h2 className="text-lg mb-4 text-zinc-200">Crear archivo en <span className="font-bold">{createFileModal.folderPath}</span></h2>
+        <div className="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-xl flex flex-col min-w-[400px]">
+          <h2 className="text-lg mb-4 text-white font-semibold">
+            Crear archivo en <span className="text-emerald-400">{createFileModal.folderPath || '/'}</span>
+          </h2>
           <input
-            className="mb-4 p-2 rounded bg-zinc-800 text-zinc-100"
+            className="mb-4 p-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 focus:border-emerald-500 focus:outline-none"
             type="text"
-            placeholder="Nombre del archivo"
+            placeholder="ejemplo.js"
             value={newFileName}
             onChange={e => setNewFileName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleCreateFile()}
+            autoFocus
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 justify-end">
             <button
-              className="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700"
+              className="bg-zinc-700 px-4 py-2 rounded-lg text-white hover:bg-zinc-600 transition"
+              onClick={() => { setCreateFileModal({ visible: false, folderPath: '' }); setNewFileName(''); }}
+            >
+              Cancelar
+            </button>
+            <button
+              className="bg-emerald-600 px-4 py-2 rounded-lg text-white hover:bg-emerald-700 transition"
               onClick={handleCreateFile}
             >
               Crear
             </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
+
+  const renderRenameModal = () => (
+    renameModal.visible && renameModal.node && (
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div className="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-xl flex flex-col min-w-[400px]">
+          <h2 className="text-lg mb-4 text-white font-semibold">
+            Renombrar archivo
+          </h2>
+          <p className="text-sm text-zinc-400 mb-4">
+            Archivo actual: <span className="text-white">{renameModal.node.name}</span>
+          </p>
+          <input
+            className="mb-4 p-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 focus:border-emerald-500 focus:outline-none"
+            type="text"
+            placeholder="Nuevo nombre"
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleRenameFile()}
+            autoFocus
+          />
+          <div className="flex gap-2 justify-end">
             <button
-              className="bg-zinc-700 px-4 py-2 rounded text-white hover:bg-zinc-800"
-              onClick={() => { setCreateFileModal({ visible: false, folderPath: '' }); setNewFileName(''); }}
+              className="bg-zinc-700 px-4 py-2 rounded-lg text-white hover:bg-zinc-600 transition"
+              onClick={() => { setRenameModal({ visible: false }); setRenameValue(''); }}
             >
               Cancelar
+            </button>
+            <button
+              className="bg-blue-600 px-4 py-2 rounded-lg text-white hover:bg-blue-700 transition"
+              onClick={handleRenameFile}
+            >
+              Renombrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
+
+  const renderDeleteModal = () => (
+    deleteModal.visible && deleteModal.node && (
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div className="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-xl flex flex-col min-w-[400px]">
+          <h2 className="text-lg mb-4 text-white font-semibold">
+            ⚠️ Eliminar archivo
+          </h2>
+          <p className="text-sm text-zinc-300 mb-4">
+            ¿Estás seguro de que deseas eliminar el archivo?
+          </p>
+          <p className="text-sm text-white bg-zinc-800 p-3 rounded mb-4 font-mono">
+            {deleteModal.node.path}
+          </p>
+          <p className="text-xs text-zinc-400 mb-4">
+            Esta acción no se puede deshacer. El archivo será eliminado del repositorio de GitHub.
+          </p>
+          <div className="flex gap-2 justify-end">
+            <button
+              className="bg-zinc-700 px-4 py-2 rounded-lg text-white hover:bg-zinc-600 transition"
+              onClick={() => setDeleteModal({ visible: false })}
+            >
+              Cancelar
+            </button>
+            <button
+              className="bg-red-600 px-4 py-2 rounded-lg text-white hover:bg-red-700 transition"
+              onClick={handleDeleteFile}
+            >
+              Eliminar
             </button>
           </div>
         </div>
@@ -377,6 +556,8 @@ export default function FileTree() {
         onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
       />
       {renderCreateFileModal()}
+      {renderRenameModal()}
+      {renderDeleteModal()}
     </>
   );
 }
