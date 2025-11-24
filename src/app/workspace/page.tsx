@@ -262,9 +262,11 @@ export default function WorkspacePage() {
       <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 py-2" style={{ position: 'relative', zIndex: 1 }}>
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-400 text-xs font-bold">
-              NH
-            </span>
+            <img
+              src="/logo.png"
+              alt="Novahub Logo"
+              className="h-8 w-8 rounded-lg object-cover"
+            />
             <span className="text-sm font-semibold">Novahub Editor</span>
           </Link>
           <div className="h-4 w-px bg-zinc-700" />
