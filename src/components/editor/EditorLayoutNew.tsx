@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { VscAccount, VscColorMode, VscSignOut } from 'react-icons/vsc';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useUserStore } from '@/store/useUserStore';
@@ -16,6 +16,7 @@ import Terminal from './Terminal';
 import StatusBar from './StatusBar';
 import ResizeHandle from './ResizeHandle';
 import AuthModal from '../auth/AuthModal';
+import GitHubConnect from '../GitHubConnect';
 
 export default function EditorLayoutNew() {
   const { theme, themeMode, setThemeMode } = useTheme();
@@ -31,13 +32,14 @@ export default function EditorLayoutNew() {
     closeFile,
     updateFileContent,
     currentRepo,
+    fetchRepoTree,
   } = useEditorStore();
 
   const [activeView, setActiveView] = useState<ActivityBarView>('explorer');
   const [showTerminal, setShowTerminal] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ line: 1, column: 1 });
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showGitHubConnect, setShowGitHubConnect] = useState(false);
 
   // Sidebar resizing
   const sidebarResize = useResizable({
@@ -142,6 +144,23 @@ export default function EditorLayoutNew() {
     setThemeMode(newMode);
   };
 
+  const handleRepoChange = () => {
+    if (!currentRepo) return;
+
+    fetchRepoTree(
+      currentRepo.owner.login,
+      currentRepo.name,
+      currentRepo.default_branch
+    );
+    setActiveView('explorer');
+  };
+
+  useEffect(() => {
+    if (currentRepo) {
+      handleRepoChange();
+    }
+  }, [currentRepo, fetchRepoTree]);
+
   return (
     <div
       className="flex flex-col h-screen"
@@ -187,6 +206,26 @@ export default function EditorLayoutNew() {
 
         {/* Right Controls */}
         <div className="flex items-center gap-2">
+          {/* GitHub connection */}
+          <button
+            onClick={() => setShowGitHubConnect(true)}
+            className="px-3 py-1 rounded text-xs font-medium transition-colors"
+            style={{
+              backgroundColor: theme.colors.backgroundTertiary,
+              color: theme.colors.titleBarForeground,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            {currentRepo ? (
+              <span className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                {currentRepo.owner.login}/{currentRepo.name}
+              </span>
+            ) : (
+              'Conectar GitHub'
+            )}
+          </button>
+
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -237,7 +276,7 @@ export default function EditorLayoutNew() {
                 color: theme.colors.buttonForeground,
               }}
             >
-              Sign In
+              Premium Sign In
             </button>
           )}
 
@@ -374,6 +413,14 @@ export default function EditorLayoutNew() {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
       />
+
+      {/* GitHub connection modal remains available for free users */}
+      {showGitHubConnect && (
+        <GitHubConnect
+          onClose={() => setShowGitHubConnect(false)}
+          onRepoSelected={handleRepoChange}
+        />
+      )}
     </div>
   );
 }

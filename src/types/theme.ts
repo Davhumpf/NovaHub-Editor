@@ -16,6 +16,7 @@ export interface ThemeColors {
   // Border colors
   border: string;
   borderLight: string;
+  borderColor?: string;
 
   // Accent colors
   accent: string;
@@ -117,6 +118,7 @@ export const darkTheme: Theme = {
 
     border: '#2d2d2d',
     borderLight: '#3c3c3c',
+    borderColor: '#2d2d2d',
 
     accent: '#007acc',
     accentHover: '#1177bb',
@@ -196,6 +198,7 @@ export const lightTheme: Theme = {
 
     border: '#e5e5e5',
     borderLight: '#d0d0d0',
+    borderColor: '#e5e5e5',
 
     accent: '#0066b8',
     accentHover: '#005a9e',
