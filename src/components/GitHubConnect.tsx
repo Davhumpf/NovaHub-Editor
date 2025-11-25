@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { useEditorStore } from '@/store/useEditorStore';
+import { useEditorStore, GitHubRepo } from '@/store/useEditorStore';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface GitHubConnectProps {
   onClose: () => void;
-  onRepoSelected: () => void;
+  onRepoSelected: (repo: GitHubRepo) => void;
 }
 
 export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnectProps) {
@@ -19,8 +20,17 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
     setCurrentRepo,
   } = useEditorStore();
 
+  const { theme } = useTheme();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
+
+  const panelStyles = {
+    backgroundColor: `${theme.colors.backgroundSecondary}dd`,
+    border: `1px solid ${theme.colors.border}`,
+    color: theme.colors.foreground,
+    boxShadow: '0 20px 70px rgba(0,0,0,0.45)',
+  };
 
   useEffect(() => {
     if (session && status === 'authenticated') {
@@ -44,9 +54,9 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
     setCurrentRepo(null);
   };
 
-  const handleSelectRepo = (repo: typeof githubRepos[0]) => {
+  const handleSelectRepo = (repo: GitHubRepo) => {
     setCurrentRepo(repo);
-    onRepoSelected();
+    onRepoSelected(repo);
     onClose();
   };
 
@@ -58,10 +68,13 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
 
   if (status === 'loading') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="w-full max-w-2xl rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-xl">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: `${theme.colors.background}cc`, backdropFilter: 'blur(10px)' }}
+      >
+        <div className="w-full max-w-2xl rounded-2xl p-6" style={panelStyles}>
           <div className="flex items-center justify-center py-8">
-            <div className="text-zinc-400">Cargando...</div>
+            <div style={{ color: theme.colors.foregroundMuted }}>Cargando...</div>
           </div>
         </div>
       </div>
@@ -70,19 +83,28 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
 
   if (!session) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-xl">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: `${theme.colors.background}cc`, backdropFilter: 'blur(10px)' }}
+      >
+        <div className="w-full max-w-md rounded-2xl p-6" style={panelStyles}>
           <h2 className="text-lg font-semibold">Conectar con GitHub</h2>
-          <p className="mt-2 text-sm text-zinc-400">
+          <p className="mt-2 text-sm" style={{ color: theme.colors.foregroundMuted }}>
             Conecta tu cuenta de GitHub para acceder a tus repositorios y trabajar
             directamente con ellos desde el editor.
           </p>
 
-          <div className="mt-6 rounded-lg border border-zinc-700 bg-zinc-800 p-4">
-            <p className="text-xs font-semibold text-zinc-300">
+          <div
+            className="mt-6 rounded-xl p-4"
+            style={{
+              backgroundColor: `${theme.colors.backgroundTertiary}b3`,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <p className="text-xs font-semibold" style={{ color: theme.colors.foreground }}>
               Funcionalidades:
             </p>
-            <ul className="mt-2 space-y-1 text-xs text-zinc-400">
+            <ul className="mt-2 space-y-1 text-xs" style={{ color: theme.colors.foregroundMuted }}>
               <li>• Acceso a todos tus repositorios (públicos y privados)</li>
               <li>• Editar archivos directamente en el navegador</li>
               <li>• Crear commits y hacer push a GitHub</li>
@@ -91,21 +113,36 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
           </div>
 
           {authError && (
-            <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 p-3">
-              <p className="text-xs text-red-400">{authError}</p>
+            <div
+              className="mt-4 rounded-xl p-3"
+              style={{
+                backgroundColor: `${theme.colors.error}15`,
+                border: `1px solid ${theme.colors.error}`,
+                color: theme.colors.error,
+              }}
+            >
+              <p className="text-xs">{authError}</p>
             </div>
           )}
 
           <div className="mt-6 flex justify-between">
             <button
               onClick={onClose}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-800"
+              className="rounded-xl px-4 py-2 text-sm transition-all"
+              style={{
+                border: `1px solid ${theme.colors.border}`,
+                backgroundColor: `${theme.colors.backgroundTertiary}80`,
+              }}
             >
               Cancelar
             </button>
             <button
               onClick={handleSignIn}
-              className="flex items-center gap-2 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium hover:bg-zinc-700"
+              className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all"
+              style={{
+                background: `linear-gradient(120deg, ${theme.colors.accent} 0%, ${theme.colors.accentHover} 100%)`,
+                color: '#031410',
+              }}
             >
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                 <path
@@ -123,14 +160,23 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-3xl rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: `${theme.colors.background}cc`, backdropFilter: 'blur(10px)' }}
+    >
+      <div className="w-full max-w-3xl rounded-2xl overflow-hidden" style={panelStyles}>
         {/* Header */}
-        <div className="border-b border-zinc-700 p-6">
+        <div
+          className="p-6"
+          style={{
+            borderBottom: `1px solid ${theme.colors.border}`,
+            backgroundColor: `${theme.colors.background}aa`,
+          }}
+        >
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Tus Repositorios</h2>
-              <div className="mt-1 flex items-center gap-2 text-sm text-zinc-400">
+              <div className="mt-1 flex items-center gap-2 text-sm" style={{ color: theme.colors.foregroundMuted }}>
                 <img
                   src={session.user.avatar}
                   alt={session.user.username}
@@ -141,7 +187,11 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
             </div>
             <button
               onClick={handleSignOut}
-              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs hover:bg-zinc-800"
+              className="rounded-xl px-3 py-1.5 text-xs transition-all"
+              style={{
+                border: `1px solid ${theme.colors.border}`,
+                backgroundColor: `${theme.colors.backgroundTertiary}80`,
+              }}
             >
               Desconectar
             </button>
@@ -154,19 +204,24 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar repositorio..."
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none"
+              style={{
+                backgroundColor: theme.colors.inputBackground,
+                color: theme.colors.inputForeground,
+                border: `1px solid ${theme.colors.inputBorder}`,
+              }}
             />
           </div>
         </div>
 
         {/* Repository list */}
-        <div className="max-h-96 overflow-y-auto p-4">
+        <div className="max-h-96 overflow-y-auto p-4 no-scrollbar">
           {isLoadingRepos ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-zinc-400">Cargando repositorios...</div>
+              <div style={{ color: theme.colors.foregroundMuted }}>Cargando repositorios...</div>
             </div>
           ) : filteredRepos.length === 0 ? (
-            <div className="py-8 text-center text-sm text-zinc-500">
+            <div className="py-8 text-center text-sm" style={{ color: theme.colors.foregroundMuted }}>
               {searchQuery
                 ? 'No se encontraron repositorios'
                 : 'No tienes repositorios'}
@@ -177,31 +232,44 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
                 <button
                   key={repo.id}
                   onClick={() => handleSelectRepo(repo)}
-                  className={`w-full rounded-lg border p-4 text-left transition-colors ${
-                    currentRepo?.id === repo.id
-                      ? 'border-emerald-500 bg-emerald-500/10'
-                      : 'border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800'
-                  }`}
+                  className="w-full rounded-xl p-4 text-left transition-all"
+                  style={{
+                    border: currentRepo?.id === repo.id
+                      ? `1px solid ${theme.colors.accent}`
+                      : `1px solid ${theme.colors.border}`,
+                    backgroundColor: currentRepo?.id === repo.id
+                      ? `${theme.colors.accent}1f`
+                      : `${theme.colors.backgroundTertiary}40`,
+                  }}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{repo.name}</span>
+                        <span className="font-medium" style={{ color: theme.colors.foreground }}>
+                          {repo.name}
+                        </span>
                         {repo.private && (
-                          <span className="rounded bg-zinc-700 px-1.5 py-0.5 text-xs">
+                          <span
+                            className="rounded px-1.5 py-0.5 text-xs"
+                            style={{
+                              backgroundColor: `${theme.colors.backgroundTertiary}80`,
+                              border: `1px solid ${theme.colors.border}`,
+                              color: theme.colors.foregroundMuted,
+                            }}
+                          >
                             Privado
                           </span>
                         )}
                       </div>
                       {repo.description && (
-                        <p className="mt-1 text-sm text-zinc-400">
+                        <p className="mt-1 text-sm" style={{ color: theme.colors.foregroundMuted }}>
                           {repo.description}
                         </p>
                       )}
-                      <div className="mt-2 flex items-center gap-3 text-xs text-zinc-500">
+                      <div className="mt-2 flex items-center gap-3 text-xs" style={{ color: theme.colors.foregroundMuted }}>
                         {repo.language && (
                           <span className="flex items-center gap-1">
-                            <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.colors.accent }}></span>
                             {repo.language}
                           </span>
                         )}
@@ -215,7 +283,8 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
                     </div>
                     {currentRepo?.id === repo.id && (
                       <svg
-                        className="h-5 w-5 text-emerald-500"
+                        className="h-5 w-5"
+                        style={{ color: theme.colors.accent }}
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -234,11 +303,18 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
         </div>
 
         {/* Footer */}
-        <div className="border-t border-zinc-700 p-4">
+        <div
+          className="p-4"
+          style={{ borderTop: `1px solid ${theme.colors.border}`, backgroundColor: `${theme.colors.background}aa` }}
+        >
           <div className="flex justify-end">
             <button
               onClick={onClose}
-              className="rounded-lg bg-zinc-700 px-4 py-2 text-sm hover:bg-zinc-600"
+              className="rounded-xl px-4 py-2 text-sm transition-all"
+              style={{
+                border: `1px solid ${theme.colors.border}`,
+                backgroundColor: `${theme.colors.backgroundTertiary}80`,
+              }}
             >
               Cerrar
             </button>

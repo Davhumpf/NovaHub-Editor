@@ -56,7 +56,7 @@ export default function EditorLayout({ theme = 'dark' }: EditorLayoutProps) {
     id: file.id,
     name: file.name,
     path: file.path,
-    isDirty: false, // You can track this separately if needed
+    isDirty: file.isDirty,
     language: file.language,
   }));
 
@@ -67,6 +67,7 @@ export default function EditorLayout({ theme = 'dark' }: EditorLayoutProps) {
     language: activeFile?.language || 'plaintext',
     encoding: 'UTF-8',
     eol: 'LF',
+    indentation: 'Spaces: 2',
     gitBranch: currentRepo?.default_branch,
     errors: 0,
     warnings: 0,
@@ -230,6 +231,7 @@ export default function EditorLayout({ theme = 'dark' }: EditorLayoutProps) {
           size={sidebarResize.size}
           isResizing={sidebarResize.isResizing}
           onMouseDown={sidebarResize.handleMouseDown}
+          onCreateProject={() => {}}
         />
 
         {/* Editor Area */}

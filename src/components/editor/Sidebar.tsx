@@ -16,6 +16,7 @@ interface SidebarProps {
   size: number;
   isResizing: boolean;
   onMouseDown: (e: React.MouseEvent) => void;
+  onCreateProject: () => void;
 }
 
 export default function Sidebar({
@@ -24,13 +25,14 @@ export default function Sidebar({
   size,
   isResizing,
   onMouseDown,
+  onCreateProject,
 }: SidebarProps) {
   const { theme } = useTheme();
 
   const renderContent = () => {
     switch (activeView) {
       case 'explorer':
-        return <FileExplorer theme={legacyTheme} />;
+        return <FileExplorer theme={legacyTheme} onCreateProject={onCreateProject} />;
       case 'search':
         return <SearchPanel theme={legacyTheme} />;
       case 'git':

@@ -16,11 +16,14 @@ if (typeof window !== 'undefined') {
   });
 }
 
+type TerminalShell = 'bash' | 'powershell' | 'cmd';
+
 interface TerminalInstance {
   id: string;
   title: string;
   terminal: any;
   fitAddon: any;
+  shell: TerminalShell;
 }
 
 interface TerminalProps {
@@ -34,9 +37,15 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
   const [terminals, setTerminals] = useState<TerminalInstance[]>([]);
   const [activeTerminalId, setActiveTerminalId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'terminal' | 'output' | 'problems' | 'debug'>('terminal');
+  const [preferredShell, setPreferredShell] = useState<TerminalShell>('bash');
+  const shellOptions: { id: TerminalShell; label: string }[] = [
+    { id: 'bash', label: 'Bash' },
+    { id: 'powershell', label: 'PowerShell' },
+    { id: 'cmd', label: 'CMD' },
+  ];
 
   // Create a new terminal instance
-  const createTerminal = () => {
+  const createTerminal = (shell: TerminalShell = preferredShell) => {
     if (!Terminal || !FitAddon) return;
 
     const terminalId = `terminal-${Date.now()}`;
@@ -114,9 +123,10 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
 
     const newTerminal: TerminalInstance = {
       id: terminalId,
-      title: `Terminal ${terminals.length + 1}`,
+      title: `${shell.toUpperCase()} ${terminals.length + 1}`,
       terminal,
       fitAddon,
+      shell,
     };
 
     setTerminals((prev) => [...prev, newTerminal]);
@@ -242,8 +252,24 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
         <div className="flex items-center gap-1 px-2">
           {activeTab === 'terminal' && (
             <>
+              <select
+                value={preferredShell}
+                onChange={(e) => setPreferredShell(e.target.value as TerminalShell)}
+                className={`text-xs px-2 py-1 rounded border focus:outline-none ${
+                  theme === 'dark'
+                    ? 'bg-[#1e1e1e] border-[#2d2d2d] text-[#cccccc]'
+                    : 'bg-white border-[#d4d4d4] text-[#1e1e1e]'
+                }`}
+                aria-label="Seleccionar shell"
+              >
+                {shellOptions.map(option => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
               <button
-                onClick={createTerminal}
+                onClick={() => createTerminal(preferredShell)}
                 title="New Terminal"
                 className={`
                   p-1.5 rounded transition-colors
@@ -347,7 +373,7 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
               >
                 <p className="text-sm mb-4">No terminal instances</p>
                 <button
-                  onClick={createTerminal}
+                  onClick={() => createTerminal()}
                   className={`
                     px-4 py-2 rounded text-sm
                     ${theme === 'dark'

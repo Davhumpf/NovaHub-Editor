@@ -34,6 +34,7 @@ export interface StatusBarInfo {
   language: string;
   encoding: string;
   eol: 'LF' | 'CRLF';
+  indentation: string;
   gitBranch?: string;
   errors: number;
   warnings: number;
