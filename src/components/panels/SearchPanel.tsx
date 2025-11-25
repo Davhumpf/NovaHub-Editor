@@ -137,7 +137,7 @@ export default function SearchPanel({ theme: legacyTheme = 'dark' }: SearchPanel
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
         {searchQuery ? (
           searchResults.length > 0 ? (
             <div className="p-3 space-y-4">

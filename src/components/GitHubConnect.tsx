@@ -215,7 +215,7 @@ export default function GitHubConnect({ onClose, onRepoSelected }: GitHubConnect
         </div>
 
         {/* Repository list */}
-        <div className="max-h-96 overflow-y-auto p-4 scrollbar-thin">
+        <div className="max-h-96 overflow-y-auto p-4 no-scrollbar">
           {isLoadingRepos ? (
             <div className="flex items-center justify-center py-8">
               <div style={{ color: theme.colors.foregroundMuted }}>Cargando repositorios...</div>
