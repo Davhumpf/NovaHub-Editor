@@ -309,7 +309,7 @@ export default function ExtensionsPanel({ theme: legacyTheme = 'dark' }: Extensi
       </div>
 
       {/* Extensions List - FIXED WITH SCROLL */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-hide" max-h-[calc(100vh-250px)]>
         {filteredExtensions.map(ext => (
           <div
             key={ext.id}
