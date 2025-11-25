@@ -10,7 +10,7 @@ interface Extension {
   icon: string;
   enabled: boolean;
   isPremium: boolean;
-  category: 'formatter' | 'linter' | 'productivity' | 'git' | 'preview';
+  category: 'formatter' | 'linter' | 'productivity' | 'git' | 'preview' | 'database' | 'devops' | 'framework';
   version: string;
   author: string;
 }
@@ -119,6 +119,106 @@ const AVAILABLE_EXTENSIONS: Extension[] = [
     version: '5.7.9',
     author: 'Ritwick Dey'
   },
+  // ADVANCED EXTENSIONS
+  {
+    id: 'tailwind-intellisense',
+    name: 'Tailwind CSS IntelliSense',
+    description: 'Autocompletado inteligente para clases Tailwind',
+    icon: '🎨',
+    enabled: false,
+    isPremium: false,
+    category: 'framework',
+    version: '0.10.5',
+    author: 'Tailwind Labs'
+  },
+  {
+    id: 'auto-import',
+    name: 'Auto Import',
+    description: 'Importaciones automáticas para JS/TS',
+    icon: '📦',
+    enabled: false,
+    isPremium: false,
+    category: 'productivity',
+    version: '1.5.4',
+    author: 'steoates'
+  },
+  {
+    id: 'git-graph',
+    name: 'Git Graph',
+    description: 'Visualizador de historial y branches de Git',
+    icon: '🌳',
+    enabled: false,
+    isPremium: false,
+    category: 'git',
+    version: '1.30.0',
+    author: 'mhutchie'
+  },
+  {
+    id: 'rest-client',
+    name: 'REST Client',
+    description: 'Cliente HTTP para probar APIs directamente',
+    icon: '📡',
+    enabled: false,
+    isPremium: false,
+    category: 'productivity',
+    version: '0.25.1',
+    author: 'Huachao Mao'
+  },
+  {
+    id: 'code-spell-checker',
+    name: 'Code Spell Checker',
+    description: 'Corrector ortográfico para código',
+    icon: '✅',
+    enabled: false,
+    isPremium: false,
+    category: 'productivity',
+    version: '3.0.1',
+    author: 'Street Side Software'
+  },
+  {
+    id: 'todo-highlight',
+    name: 'TODO Highlight',
+    description: 'Resalta comentarios TODO, FIXME, NOTE',
+    icon: '📌',
+    enabled: false,
+    isPremium: false,
+    category: 'productivity',
+    version: '1.0.5',
+    author: 'Wayou Liu'
+  },
+  {
+    id: 'import-cost',
+    name: 'Import Cost',
+    description: 'Muestra el tamaño de las importaciones',
+    icon: '📊',
+    enabled: false,
+    isPremium: false,
+    category: 'productivity',
+    version: '3.3.0',
+    author: 'Wix'
+  },
+  {
+    id: 'docker',
+    name: 'Docker',
+    description: 'Soporte completo para Docker y Docker Compose',
+    icon: '🐳',
+    enabled: false,
+    isPremium: false,
+    category: 'devops',
+    version: '1.29.0',
+    author: 'Microsoft'
+  },
+  {
+    id: 'mongodb-vscode',
+    name: 'MongoDB for VS Code',
+    description: 'Conecta y gestiona bases de datos MongoDB',
+    icon: '🍃',
+    enabled: false,
+    isPremium: false,
+    category: 'database',
+    version: '1.4.0',
+    author: 'MongoDB'
+  },
   {
     id: 'ai-copilot',
     name: 'AI Copilot',
@@ -145,6 +245,9 @@ export default function ExtensionsPanel({ theme: legacyTheme = 'dark' }: Extensi
     { id: 'productivity', name: 'Productividad' },
     { id: 'git', name: 'Git' },
     { id: 'preview', name: 'Preview' },
+    { id: 'framework', name: 'Frameworks' },
+    { id: 'devops', name: 'DevOps' },
+    { id: 'database', name: 'Databases' },
   ];
 
   const toggleExtension = (id: string) => {
@@ -185,7 +288,7 @@ export default function ExtensionsPanel({ theme: legacyTheme = 'dark' }: Extensi
       </div>
 
       {/* Categories */}
-      <div className="flex gap-1 px-3 py-2 border-b overflow-x-auto no-scrollbar" style={{ borderColor: theme.colors.borderColor }}>
+      <div className="flex gap-1 px-3 py-2 border-b overflow-x-auto scrollbar-hide" style={{ borderColor: theme.colors.borderColor }}>
         {categories.map(cat => (
           <button
             key={cat.id}
@@ -205,8 +308,8 @@ export default function ExtensionsPanel({ theme: legacyTheme = 'dark' }: Extensi
         ))}
       </div>
 
-      {/* Extensions List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
+      {/* Extensions List - FIXED WITH SCROLL */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-hide">
         {filteredExtensions.map(ext => (
           <div
             key={ext.id}
