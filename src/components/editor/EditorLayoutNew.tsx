@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { VscAccount, VscColorMode, VscSignOut } from 'react-icons/vsc';
@@ -20,6 +20,7 @@ import ResizeHandle from './ResizeHandle';
 import AuthModal from '../auth/AuthModal';
 import GitHubConnect from '../GitHubConnect';
 import { GitHubRepo } from '@/store/useEditorStore';
+import ProjectWizard from '../ProjectWizard';
 
 export default function EditorLayoutNew() {
   const { theme, themeMode, setThemeMode } = useTheme();
@@ -37,13 +38,21 @@ export default function EditorLayoutNew() {
     updateFileContent,
     currentRepo,
     fetchRepoTree,
+    terminalVisible,
+    setTerminalVisible,
   } = useEditorStore();
 
   const [activeView, setActiveView] = useState<ActivityBarView>('explorer');
-  const [showTerminal, setShowTerminal] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ line: 1, column: 1 });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showGitHubConnect, setShowGitHubConnect] = useState(false);
+  const [showProjectWizard, setShowProjectWizard] = useState(false);
+
+  const handleProjectCreated = useCallback((projectPath: string) => {
+    console.info('Proyecto creado en', projectPath);
+    setShowProjectWizard(false);
+    setActiveView('explorer');
+  }, [setActiveView]);
 
   // Sidebar resizing
   const sidebarResize = useResizable({
@@ -55,7 +64,7 @@ export default function EditorLayoutNew() {
 
   // Terminal resizing
   const terminalResize = useResizable({
-    initialSize: 300,
+    initialSize: 200,
     minSize: 100,
     maxSize: 600,
     direction: 'vertical',
@@ -69,7 +78,7 @@ export default function EditorLayoutNew() {
     id: file.id,
     name: file.name,
     path: file.path,
-    isDirty: false,
+    isDirty: file.isDirty,
     language: file.language,
   }));
 
@@ -80,58 +89,68 @@ export default function EditorLayoutNew() {
     language: activeFile?.language || 'plaintext',
     encoding: 'UTF-8',
     eol: 'LF',
+    indentation: 'Spaces: 2',
     gitBranch: currentRepo?.default_branch,
     errors: 0,
     warnings: 0,
   };
 
-  // Key bindings
-  useKeyBindings([
-    {
-      key: 'e',
-      ctrl: true,
-      shift: true,
-      callback: () => setActiveView('explorer'),
-    },
-    {
-      key: 'f',
-      ctrl: true,
-      shift: true,
-      callback: () => setActiveView('search'),
-    },
-    {
-      key: 'g',
-      ctrl: true,
-      shift: true,
-      callback: () => setActiveView('git'),
-    },
-    {
-      key: 'd',
-      ctrl: true,
-      shift: true,
-      callback: () => setActiveView('debug'),
-    },
-    {
-      key: 'x',
-      ctrl: true,
-      shift: true,
-      callback: () => setActiveView('extensions'),
-    },
-    {
-      key: '`',
-      ctrl: true,
-      callback: () => setShowTerminal(!showTerminal),
-    },
-    {
-      key: 'w',
-      ctrl: true,
-      callback: () => {
-        if (activeFileId) {
-          closeFile(activeFileId);
-        }
+  const toggleTerminal = useCallback(() => {
+    setTerminalVisible(!terminalVisible);
+  }, [setTerminalVisible, terminalVisible]);
+
+  const keyBindings = useMemo(
+    () => [
+      {
+        key: 'e',
+        ctrl: true,
+        shift: true,
+        callback: () => setActiveView('explorer'),
       },
-    },
-  ]);
+      {
+        key: 'f',
+        ctrl: true,
+        shift: true,
+        callback: () => setActiveView('search'),
+      },
+      {
+        key: 'g',
+        ctrl: true,
+        shift: true,
+        callback: () => setActiveView('git'),
+      },
+      {
+        key: 'd',
+        ctrl: true,
+        shift: true,
+        callback: () => setActiveView('debug'),
+      },
+      {
+        key: 'x',
+        ctrl: true,
+        shift: true,
+        callback: () => setActiveView('extensions'),
+      },
+      {
+        key: '`',
+        ctrl: true,
+        callback: () => toggleTerminal(),
+      },
+      {
+        key: 'w',
+        ctrl: true,
+        callback: () => {
+          if (activeFileId) {
+            closeFile(activeFileId);
+          }
+        },
+      },
+    ],
+    [activeFileId, closeFile, setActiveView, toggleTerminal]
+  );
+
+  // Key bindings
+  useKeyBindings(keyBindings);
 
   const handleEditorChange = (value: string | undefined) => {
     if (activeFileId && value !== undefined) {
@@ -348,6 +367,7 @@ export default function EditorLayoutNew() {
               size={sidebarResize.size}
               isResizing={sidebarResize.isResizing}
               onMouseDown={sidebarResize.handleMouseDown}
+              onCreateProject={() => setShowProjectWizard(true)}
             />
 
             {/* Editor Area */}
@@ -417,7 +437,7 @@ export default function EditorLayoutNew() {
               </div>
 
               {/* Terminal Panel */}
-              {showTerminal && (
+              {terminalVisible && (
                 <>
                   <ResizeHandle
                     direction="vertical"
@@ -427,8 +447,8 @@ export default function EditorLayoutNew() {
                   <div style={{ height: `${terminalResize.size}px` }}>
                     <Terminal
                       theme={legacyTheme}
-                      isVisible={showTerminal}
-                      onClose={() => setShowTerminal(false)}
+                      isVisible={terminalVisible}
+                      onClose={() => setTerminalVisible(false)}
                     />
                   </div>
                 </>
@@ -437,8 +457,12 @@ export default function EditorLayoutNew() {
           </div>
         </div>
 
-        {/* Status Bar */}
-        <StatusBar info={statusBarInfo} theme={legacyTheme} />
+        {/* Status Bar fijo inferior */}
+        <StatusBar
+          info={statusBarInfo}
+          terminalVisible={terminalVisible}
+          onToggleTerminal={toggleTerminal}
+        />
 
       </div>
 
@@ -446,6 +470,12 @@ export default function EditorLayoutNew() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+      />
+
+      <ProjectWizard
+        isOpen={showProjectWizard}
+        onClose={() => setShowProjectWizard(false)}
+        onProjectCreated={handleProjectCreated}
       />
 
       {/* GitHub connection modal remains available for free users */}

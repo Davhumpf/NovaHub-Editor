@@ -181,7 +181,7 @@ export default function DocsPage() {
                       </div>
                       <Link
                         href="/workspace"
-                        onClick={() => openFile(file)}
+                        onClick={() => openFile({ ...file, isDirty: false })}
                         className="rounded-lg bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white opacity-0 transition-opacity hover:bg-emerald-600 group-hover:opacity-100"
                       >
                         Abrir
