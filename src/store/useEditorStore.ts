@@ -64,6 +64,9 @@ interface EditorState {
   // Terminal
   terminalVisible: boolean;
 
+  // Terminal
+  terminalVisible: boolean;
+
   // GitHub integration
   githubToken: string | null;
   githubRepos: GitHubRepo[];
