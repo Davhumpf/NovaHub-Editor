@@ -689,7 +689,7 @@ export default function FileTree() {
         </button>
       </div>
 
-      <div className="file-tree-container overflow-y-auto" style={{ maxHeight: 'calc(80vh - 40px)' }}>
+      <div className="file-tree-container overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 180px)' }}>
         <div className="space-y-0.5 p-2">
           {fileTree.map((node) => renderNode(node))}
         </div>
