@@ -96,7 +96,7 @@ export default function DebugPanel({ theme: legacyTheme = 'dark' }: DebugPanelPr
           </div>
 
           {/* Debug Info */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto no-scrollbar">
             {/* Variables */}
             <div className="p-3 border-b" style={{ borderColor: theme.colors.borderColor }}>
               <div className="flex items-center justify-between mb-2">

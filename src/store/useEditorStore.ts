@@ -8,6 +8,7 @@ export interface FileItem {
   content: string;
   language: string;
   lastModified: Date;
+  isDirty: boolean;
 }
 
 export interface NoteItem {
@@ -57,6 +58,11 @@ interface EditorState {
   openFiles: FileItem[];
   activeFileId: string | null;
   recentFiles: FileItem[];
+  workspaceFiles: FileItem[];
+  workspaceName: string | null;
+
+  // Terminal
+  terminalVisible: boolean;
 
   // GitHub integration
   githubToken: string | null;
@@ -71,13 +77,21 @@ interface EditorState {
   notes: NoteItem[];
 
   // Actions for files
+  addFile: (file: FileItem) => void;
+  setWorkspaceFiles: (files: FileItem[], workspaceName: string) => void;
   openFile: (file: FileItem) => void;
   closeFile: (fileId: string) => void;
   updateFileContent: (fileId: string, content: string) => void;
+  setFileDirty: (fileId: string, isDirty: boolean) => void;
+  renameFile: (fileId: string, newName: string) => void;
+  deleteFile: (fileId: string) => void;
   setActiveFile: (fileId: string) => void;
 
   // Actions for workspace
   setCurrentWorkspace: (workspace: string) => void;
+
+  // Terminal actions
+  setTerminalVisible: (visible: boolean) => void;
 
   // Actions for GitHub
   setGitHubToken: (token: string | null) => void;
@@ -102,7 +116,7 @@ interface EditorState {
     fileName: string,
     branch?: string
   ) => Promise<boolean>;
-  deleteFile: (
+  deleteRepoFile: (
     owner: string,
     repo: string,
     path: string,
@@ -110,7 +124,7 @@ interface EditorState {
     sha: string,
     branch?: string
   ) => Promise<boolean>;
-  renameFile: (
+  renameRepoFile: (
     owner: string,
     repo: string,
     oldPath: string,
@@ -134,6 +148,9 @@ export const useEditorStore = create<EditorState>()(
       openFiles: [],
       activeFileId: null,
       recentFiles: [],
+      workspaceFiles: [],
+      workspaceName: null,
+      terminalVisible: false,
       githubToken: null,
       githubRepos: [],
       currentRepo: null,
@@ -144,25 +161,55 @@ export const useEditorStore = create<EditorState>()(
       notes: [],
 
       // File actions
+      addFile: (file: FileItem) => {
+        const { workspaceFiles } = get();
+        const existing = workspaceFiles.find((f) => f.id === file.id);
+        const nextFile: FileItem = {
+          ...file,
+          isDirty: file.isDirty ?? false,
+          lastModified: file.lastModified ?? new Date(),
+        };
+
+        if (existing) {
+          set({
+            workspaceFiles: workspaceFiles.map((f) => (f.id === file.id ? nextFile : f)),
+          });
+          return;
+        }
+
+        set({ workspaceFiles: [...workspaceFiles, nextFile] });
+      },
+
+      setWorkspaceFiles: (files: FileItem[], workspaceName: string) => {
+        set({
+          workspaceFiles: files,
+          workspaceName,
+        });
+      },
+
       openFile: (file: FileItem) => {
         const { openFiles, recentFiles } = get();
+        const normalizedFile: FileItem = {
+          ...file,
+          isDirty: file.isDirty ?? false,
+        };
 
         // Check if file is already open
-        const isOpen = openFiles.find(f => f.id === file.id);
+        const isOpen = openFiles.find(f => f.id === normalizedFile.id);
 
         if (!isOpen) {
           set({
-            openFiles: [...openFiles, file],
-            activeFileId: file.id,
+            openFiles: [...openFiles, normalizedFile],
+            activeFileId: normalizedFile.id,
           });
         } else {
-          set({ activeFileId: file.id });
+          set({ activeFileId: normalizedFile.id });
         }
 
         // Update recent files
-        const filteredRecent = recentFiles.filter(f => f.id !== file.id);
+        const filteredRecent = recentFiles.filter(f => f.id !== normalizedFile.id);
         set({
-          recentFiles: [file, ...filteredRecent].slice(0, 20), // Keep last 20 files
+          recentFiles: [normalizedFile, ...filteredRecent].slice(0, 20), // Keep last 20 files
         });
       },
 
@@ -184,14 +231,100 @@ export const useEditorStore = create<EditorState>()(
       updateFileContent: (fileId: string, content: string) => {
         const { openFiles, recentFiles } = get();
 
+        let nextActiveId: string | null = null;
+
+        const updateFile = (file: FileItem) => {
+          if (file.id !== fileId) return file;
+
+          const updated = {
+            ...file,
+            content,
+            lastModified: new Date(),
+            isDirty: true,
+          };
+          nextActiveId = updated.id;
+          return updated;
+        };
+
+        const updatedOpenFiles = openFiles.map(updateFile);
+        const updatedRecentFiles = recentFiles.map(updateFile);
+
+        set({
+          openFiles: updatedOpenFiles,
+          recentFiles: updatedRecentFiles,
+          activeFileId: nextActiveId ?? get().activeFileId,
+        });
+      },
+
+      setFileDirty: (fileId: string, isDirty: boolean) => {
+        const { openFiles, recentFiles } = get();
+
         const updateFile = (file: FileItem) =>
-          file.id === fileId
-            ? { ...file, content, lastModified: new Date() }
-            : file;
+          file.id === fileId ? { ...file, isDirty } : file;
 
         set({
           openFiles: openFiles.map(updateFile),
           recentFiles: recentFiles.map(updateFile),
+        });
+      },
+
+      renameFile: (fileId: string, newName: string) => {
+        const { openFiles, recentFiles, activeFileId, workspaceFiles } = get();
+        let updatedActiveId = activeFileId;
+
+        const rename = (file: FileItem) => {
+          if (file.id !== fileId) return file;
+
+          const pathParts = file.path.split('/');
+          pathParts[pathParts.length - 1] = newName;
+          const newPath = pathParts.join('/');
+          const newId = file.id.startsWith('github-')
+            ? `github-${newPath}`
+            : file.id.startsWith('local-')
+              ? `local-${newPath}`
+              : file.id;
+
+          if (updatedActiveId === fileId) {
+            updatedActiveId = newId;
+          }
+
+          return {
+            ...file,
+            id: newId,
+            name: newName,
+            path: newPath,
+          };
+        };
+
+        const updatedOpen = openFiles.map(rename);
+        const updatedRecent = recentFiles.map(rename);
+        const updatedWorkspace = workspaceFiles.map(rename);
+
+        set({
+          openFiles: updatedOpen,
+          recentFiles: updatedRecent,
+          workspaceFiles: updatedWorkspace,
+          activeFileId: updatedActiveId,
+        });
+      },
+
+      deleteFile: (fileId: string) => {
+        const { openFiles, recentFiles, activeFileId, workspaceFiles } = get();
+
+        const newOpenFiles = openFiles.filter(f => f.id !== fileId);
+        const newRecentFiles = recentFiles.filter(f => f.id !== fileId);
+        const newWorkspaceFiles = workspaceFiles.filter(f => f.id !== fileId);
+
+        let newActiveFileId = activeFileId;
+        if (activeFileId === fileId) {
+          newActiveFileId = newOpenFiles.length > 0 ? newOpenFiles[0].id : null;
+        }
+
+        set({
+          openFiles: newOpenFiles,
+          recentFiles: newRecentFiles,
+          workspaceFiles: newWorkspaceFiles,
+          activeFileId: newActiveFileId,
         });
       },
 
@@ -202,6 +335,11 @@ export const useEditorStore = create<EditorState>()(
       // Workspace actions
       setCurrentWorkspace: (workspace: string) => {
         set({ currentWorkspace: workspace });
+      },
+
+      // Terminal actions
+      setTerminalVisible: (visible: boolean) => {
+        set({ terminalVisible: visible });
       },
 
       // GitHub actions
@@ -342,7 +480,7 @@ export const useEditorStore = create<EditorState>()(
       },
 
       // Eliminar archivo de GitHub
-      deleteFile: async (
+      deleteRepoFile: async (
         owner: string,
         repo: string,
         path: string,
@@ -379,7 +517,7 @@ export const useEditorStore = create<EditorState>()(
       },
 
       // Renombrar archivo en GitHub
-      renameFile: async (
+      renameRepoFile: async (
         owner: string,
         repo: string,
         oldPath: string,
