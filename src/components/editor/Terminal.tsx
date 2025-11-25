@@ -83,7 +83,9 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
 
     if (['clear', 'cls'].includes(cmd)) {
       terminal.clear();
-      return { newPath: currentPath };
+          // Prevent showing command in history after clear
+    terminal.write(formatPrompt(shell, currentPath))
+          return { newPath: currentPath };
     }
 
     if (cmd === 'help') {
