@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { VscClose, VscCircleFilled } from 'react-icons/vsc';
+import { VscClose } from 'react-icons/vsc';
 import { useTheme } from '@/contexts/ThemeContext';
 import { EditorTab } from '@/types/editor';
 
@@ -77,17 +77,10 @@ export default function EditorTabs({
             </span>
 
             {/* File Name */}
-            <span className="text-sm truncate max-w-32">
-              {tab.name}
+            <span className="text-sm truncate max-w-32 flex items-center gap-1">
+              {tab.isDirty && <span className="text-[10px]">●</span>}
+              <span>{tab.name}{tab.isDirty ? '*' : ''}</span>
             </span>
-
-            {/* Dirty Indicator (unsaved changes) */}
-            {tab.isDirty && (
-              <VscCircleFilled 
-                className="w-2 h-2 flex-shrink-0" 
-                style={{ color: theme.colors.accent }}
-              />
-            )}
 
             {/* Close Button */}
             <button

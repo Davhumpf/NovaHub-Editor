@@ -124,7 +124,7 @@ export default function GitPanel({ theme: legacyTheme = 'dark' }: GitPanelProps)
           </div>
 
           {/* Changed Files */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto no-scrollbar">
             <div className="p-3">
               <div className="text-xs font-semibold uppercase mb-2" style={{ color: theme.colors.foregroundMuted }}>
                 Cambios ({changedFiles.length})

@@ -24,8 +24,8 @@ export default function FileTree() {
     fetchFileContent,
     openFile,
     createFile,
-    deleteFile,
-    renameFile,
+    deleteRepoFile,
+    renameRepoFile,
   } = useEditorStore();
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -163,6 +163,7 @@ export default function FileTree() {
         content: fileContent.content,
         language,
         lastModified: new Date(),
+        isDirty: false,
       });
     }
   };
@@ -308,7 +309,7 @@ export default function FileTree() {
 
     setIsRenaming(true);
     try {
-      const success = await renameFile(
+      const success = await renameRepoFile(
         currentRepo.owner.login,
         currentRepo.name,
         node.path,
@@ -347,7 +348,7 @@ export default function FileTree() {
     setIsDeleting(true);
 
     try {
-      const success = await deleteFile(
+      const success = await deleteRepoFile(
         currentRepo.owner.login,
         currentRepo.name,
         node.path,

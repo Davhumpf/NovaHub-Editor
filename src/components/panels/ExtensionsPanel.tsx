@@ -185,7 +185,7 @@ export default function ExtensionsPanel({ theme: legacyTheme = 'dark' }: Extensi
       </div>
 
       {/* Categories */}
-      <div className="flex gap-1 px-3 py-2 border-b overflow-x-auto" style={{ borderColor: theme.colors.borderColor }}>
+      <div className="flex gap-1 px-3 py-2 border-b overflow-x-auto no-scrollbar" style={{ borderColor: theme.colors.borderColor }}>
         {categories.map(cat => (
           <button
             key={cat.id}
@@ -206,7 +206,7 @@ export default function ExtensionsPanel({ theme: legacyTheme = 'dark' }: Extensi
       </div>
 
       {/* Extensions List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
         {filteredExtensions.map(ext => (
           <div
             key={ext.id}

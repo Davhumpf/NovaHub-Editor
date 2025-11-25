@@ -71,7 +71,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             className="text-2xl font-semibold"
             style={{ color: theme.colors.foreground }}
           >
-            {mode === 'login' ? 'Sign In' : 'Create Account'}
+            {mode === 'login' ? 'Inicia sesión' : 'Crear cuenta'}
           </h2>
           <button
             onClick={onClose}
@@ -80,6 +80,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           >
             <VscClose className="w-5 h-5" />
           </button>
+        </div>
+
+        <div className="px-6 pt-4 text-sm" style={{ color: theme.colors.foregroundMuted }}>
+          Sincroniza tus ajustes y extensiones en la nube aunque uses la versión gratuita.
         </div>
 
         {/* Body */}
