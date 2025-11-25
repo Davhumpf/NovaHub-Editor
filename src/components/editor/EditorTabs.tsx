@@ -1,8 +1,7 @@
-'use client';
-
+"use client";
 import React from 'react';
 import { VscClose, VscCircleFilled } from 'react-icons/vsc';
-import { getFileIcon } from '@/utils/fileIcons';
+import { useTheme } from '@/contexts/ThemeContext';
 import { EditorTab } from '@/types/editor';
 
 interface EditorTabsProps {
@@ -13,89 +12,102 @@ interface EditorTabsProps {
   theme?: 'dark' | 'light';
 }
 
-export default function EditorTabs({
-  tabs,
-  activeTabId,
-  onTabClick,
+export default function EditorTabs({ 
+  tabs, 
+  activeTabId, 
+  onTabClick, 
   onTabClose,
-  theme = 'dark',
+  theme: legacyTheme = 'dark' 
 }: EditorTabsProps) {
+  const theme = useTheme();
+
   if (tabs.length === 0) return null;
 
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    
+    const iconMap: Record<string, string> = {
+      'js': '📜',
+      'ts': '🔷',
+      'jsx': '⚛️',
+      'tsx': '⚛️',
+      'py': '🐍',
+      'java': '☕',
+      'html': '🌐',
+      'css': '🎨',
+      'json': '📋',
+      'md': '📝',
+      'xml': '📄',
+      'yml': '⚙️',
+      'yaml': '⚙️',
+    };
+
+    return iconMap[ext || ''] || '📄';
+  };
+
   return (
-    <div
-      className={`
-        flex items-center overflow-x-auto
-        ${theme === 'dark' ? 'bg-[#252526]' : 'bg-[#f3f3f3]'}
-        border-b
-        ${theme === 'dark' ? 'border-[#2d2d2d]' : 'border-[#e5e5e5]'}
-      `}
-      style={{ scrollbarWidth: 'thin' }}
+    <div 
+      className="flex items-center h-9 border-b overflow-x-auto scrollbar-thin"
+      style={{ 
+        backgroundColor: theme.colors.backgroundSecondary,
+        borderColor: theme.colors.borderColor 
+      }}
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
-
+        
         return (
           <div
             key={tab.id}
+            className="flex items-center gap-2 px-3 h-full border-r cursor-pointer group relative flex-shrink-0"
+            style={{
+              backgroundColor: isActive 
+                ? theme.colors.background 
+                : 'transparent',
+              borderColor: theme.colors.borderColor,
+              color: isActive 
+                ? theme.colors.foreground 
+                : theme.colors.foregroundMuted
+            }}
             onClick={() => onTabClick(tab.id)}
-            className={`
-              group flex items-center gap-2 px-3 py-2
-              border-r min-w-[120px] max-w-[200px]
-              cursor-pointer select-none
-              ${theme === 'dark' ? 'border-[#2d2d2d]' : 'border-[#e5e5e5]'}
-              ${isActive
-                ? theme === 'dark'
-                  ? 'bg-[#1e1e1e] text-white'
-                  : 'bg-white text-[#1e1e1e]'
-                : theme === 'dark'
-                  ? 'bg-[#2d2d2d] text-[#858585] hover:bg-[#2a2a2a]'
-                  : 'bg-[#ececec] text-[#6c6c6c] hover:bg-[#e8e8e8]'
-              }
-              transition-colors
-            `}
           >
-            {/* File icon */}
-            <div className="flex-shrink-0">
+            {/* File Icon */}
+            <span className="text-sm flex-shrink-0">
               {getFileIcon(tab.name)}
-            </div>
+            </span>
 
-            {/* File name */}
-            <span className="flex-1 truncate text-sm">
+            {/* File Name */}
+            <span className="text-sm truncate max-w-32">
               {tab.name}
             </span>
 
-            {/* Dirty indicator or close button */}
-            <div className="flex-shrink-0 flex items-center justify-center w-4 h-4">
-              {tab.isDirty ? (
-                <VscCircleFilled
-                  className={`
-                    w-2.5 h-2.5
-                    ${theme === 'dark' ? 'text-white' : 'text-[#1e1e1e]'}
-                  `}
-                  title="Unsaved changes"
-                />
-              ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTabClose(tab.id);
-                  }}
-                  className={`
-                    opacity-0 group-hover:opacity-100
-                    transition-opacity
-                    ${theme === 'dark'
-                      ? 'hover:bg-[#424242]'
-                      : 'hover:bg-[#d0d0d0]'
-                    }
-                    rounded p-0.5
-                  `}
-                  title="Close (Ctrl+W)"
-                >
-                  <VscClose className="w-3 h-3" />
-                </button>
-              )}
-            </div>
+            {/* Dirty Indicator (unsaved changes) */}
+            {tab.isDirty && (
+              <VscCircleFilled 
+                className="w-2 h-2 flex-shrink-0" 
+                style={{ color: theme.colors.accent }}
+              />
+            )}
+
+            {/* Close Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTabClose(tab.id);
+              }}
+              className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-opacity flex-shrink-0"
+              style={{ color: theme.colors.foreground }}
+            >
+              <VscClose className="w-3 h-3" />
+            </button>
+
+            {/* Active Tab Indicator */}
+            {isActive && (
+              <div 
+                className="absolute bottom-0 left-0 right-0 h-0.5"
+                style={{ backgroundColor: theme.colors.accent }}
+              />
+            )}
           </div>
         );
       })}

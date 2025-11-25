@@ -1,695 +1,385 @@
-'use client';
-
+"use client";
 import React, { useState, useEffect } from 'react';
-import { VscChevronRight, VscChevronDown, VscNewFile, VscRefresh } from 'react-icons/vsc';
-import { useEditorStore, GitHubFile } from '@/store/useEditorStore';
-import { getFileIcon, getLanguageFromFileName } from '@/utils/fileIcons';
-import ContextMenu from '../ContextMenu';
-import { FileTreeNode } from '@/types/editor';
+import { 
+  VscChevronRight, 
+  VscChevronDown, 
+  VscFile, 
+  VscFolder, 
+  VscFolderOpened,
+  VscRefresh,
+  VscNewFile,
+  VscNewFolder,
+  VscClose
+} from 'react-icons/vsc';
+import { useEditorStore } from '@/store/useEditorStore';
+import { useTheme } from '@/contexts/ThemeContext';
+import ContextMenu from './ContextMenu';
+
+interface FileNode {
+  name: string;
+  path: string;
+  type: 'file' | 'folder';
+  sha?: string;
+  children?: FileNode[];
+}
 
 interface FileExplorerProps {
   theme?: 'dark' | 'light';
 }
 
-export default function FileExplorer({ theme = 'dark' }: FileExplorerProps) {
-  const {
-    currentRepo,
-    repoFiles,
-    repoFolders,
-    isLoadingFiles,
-    fetchRepoTree,
+export default function FileExplorer({ theme: legacyTheme = 'dark' }: FileExplorerProps) {
+  const theme = useTheme();
+  const { 
+    repoFiles, 
+    repoFolders, 
+    currentRepo, 
+    openFile, 
     fetchFileContent,
-    openFile,
-    createFile,
+    fetchRepoTree,
     deleteFile,
     renameFile,
+    createFile
   } = useEditorStore();
 
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
-  const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
-  const [contextMenu, setContextMenu] = useState<{
-    visible: boolean;
-    position: { x: number; y: number };
-    node?: FileTreeNode;
-  }>({ visible: false, position: { x: 0, y: 0 } });
-
-  // Modals
-  const [createFileModal, setCreateFileModal] = useState<{
-    visible: boolean;
-    folderPath: string;
-  }>({ visible: false, folderPath: '' });
-  const [newFileName, setNewFileName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-
-  const [renameModal, setRenameModal] = useState<{
-    visible: boolean;
-    node?: FileTreeNode;
-  }>({ visible: false });
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['/']));
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: FileNode } | null>(null);
+  const [isRenaming, setIsRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [isRenaming, setIsRenaming] = useState(false);
+  const [fileTree, setFileTree] = useState<FileNode[]>([]);
 
-  const [deleteModal, setDeleteModal] = useState<{
-    visible: boolean;
-    node?: FileTreeNode;
-  }>({ visible: false });
-  const [isDeleting, setIsDeleting] = useState(false);
-
+  // Build file tree from flat file list
   useEffect(() => {
-    if (currentRepo) {
-      fetchRepoTree(
-        currentRepo.owner.login,
-        currentRepo.name,
-        currentRepo.default_branch
-      );
-    }
-  }, [currentRepo]);
+    if (!repoFiles || repoFiles.length === 0) return;
 
-  useEffect(() => {
-    if (repoFiles.length > 0 || repoFolders.length > 0) {
-      const tree = buildFileTree(repoFiles, repoFolders);
-      setFileTree(tree);
-    }
-  }, [repoFiles, repoFolders]);
+    const tree: FileNode[] = [];
+    const folderMap = new Map<string, FileNode>();
 
-  const buildFileTree = (
-    files: GitHubFile[],
-    folders: GitHubFile[]
-  ): FileTreeNode[] => {
-    const root: FileTreeNode[] = [];
-    const pathMap = new Map<string, FileTreeNode>();
-
-    folders.forEach((folder) => {
-      const node: FileTreeNode = {
-        name: folder.path.split('/').pop() || folder.path,
-        path: folder.path,
-        type: 'folder',
-        children: [],
-        sha: folder.sha,
-      };
-      pathMap.set(folder.path, node);
+    // Add folders first
+    repoFolders?.forEach((folder) => {
+      const parts = folder.path.split('/').filter(Boolean);
+      let currentPath = '';
+      
+      parts.forEach((part, index) => {
+        const previousPath = currentPath;
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        
+        if (!folderMap.has(currentPath)) {
+          const folderNode: FileNode = {
+            name: part,
+            path: currentPath,
+            type: 'folder',
+            children: []
+          };
+          
+          folderMap.set(currentPath, folderNode);
+          
+          if (index === 0) {
+            tree.push(folderNode);
+          } else if (folderMap.has(previousPath)) {
+            folderMap.get(previousPath)!.children!.push(folderNode);
+          }
+        }
+      });
     });
 
-    files.forEach((file) => {
-      const node: FileTreeNode = {
-        name: file.path.split('/').pop() || file.path,
+    // Add files
+    repoFiles.forEach((file) => {
+      const parts = file.path.split('/').filter(Boolean);
+      const fileName = parts[parts.length - 1];
+      const folderPath = parts.slice(0, -1).join('/');
+
+      const fileNode: FileNode = {
+        name: fileName,
         path: file.path,
         type: 'file',
-        sha: file.sha,
-        size: file.size,
+        sha: file.sha
       };
-      pathMap.set(file.path, node);
-    });
 
-    pathMap.forEach((node) => {
-      const parentPath = node.path.split('/').slice(0, -1).join('/');
-      if (parentPath) {
-        const parent = pathMap.get(parentPath);
-        if (parent && parent.children) {
-          parent.children.push(node);
-        }
-      } else {
-        root.push(node);
+      if (folderPath && folderMap.has(folderPath)) {
+        folderMap.get(folderPath)!.children!.push(fileNode);
+      } else if (!folderPath) {
+        tree.push(fileNode);
       }
     });
 
-    const sortNodes = (nodes: FileTreeNode[]) => {
-      nodes.sort((a, b) => {
-        if (a.type !== b.type) {
-          return a.type === 'folder' ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      });
-      nodes.forEach((node) => {
-        if (node.children) {
-          sortNodes(node.children);
-        }
-      });
-    };
-
-    sortNodes(root);
-    return root;
-  };
+    setFileTree(tree);
+  }, [repoFiles, repoFolders]);
 
   const toggleFolder = (path: string) => {
-    const newExpanded = new Set(expandedFolders);
-    if (newExpanded.has(path)) {
-      newExpanded.delete(path);
-    } else {
-      newExpanded.add(path);
-    }
-    setExpandedFolders(newExpanded);
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(path)) {
+        newSet.delete(path);
+      } else {
+        newSet.add(path);
+      }
+      return newSet;
+    });
   };
 
-  const handleFileClick = async (node: FileTreeNode) => {
+  const handleFileClick = async (file: FileNode) => {
     if (!currentRepo) return;
 
-    const fileContent = await fetchFileContent(
+    const content = await fetchFileContent(
       currentRepo.owner.login,
       currentRepo.name,
-      node.path
+      file.path
     );
 
-    if (fileContent) {
-      const language = getLanguageFromFileName(node.name);
+    if (content) {
       openFile({
-        id: `github-${currentRepo.name}-${node.path}`,
-        name: node.name,
-        path: node.path,
-        content: fileContent.content,
-        language,
+        id: `github-${file.path}`,
+        name: file.name,
+        path: file.path,
+        content: atob(content.content), // Decode base64
+        language: getLanguageFromFileName(file.name),
         lastModified: new Date(),
       });
     }
   };
 
-  const showContextMenu = (e: React.MouseEvent, node: FileTreeNode) => {
+  const handleContextMenu = (e: React.MouseEvent, item: FileNode) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({
-      visible: true,
-      position: { x: e.clientX, y: e.clientY },
-      node,
-    });
+    setContextMenu({ x: e.clientX, y: e.clientY, item });
   };
 
-  const handleRenameClick = (node: FileTreeNode) => {
-    setRenameModal({ visible: true, node });
-    setRenameValue(node.name);
-    setContextMenu((prev) => ({ ...prev, visible: false }));
+  const handleRename = (item: FileNode) => {
+    setIsRenaming(item.path);
+    setRenameValue(item.name);
+    setContextMenu(null);
   };
 
-  const handleDeleteClick = (node: FileTreeNode) => {
-    setDeleteModal({ visible: true, node });
-    setContextMenu((prev) => ({ ...prev, visible: false }));
-  };
+  const handleDelete = async (item: FileNode) => {
+    if (!currentRepo || !item.sha) return;
+    
+    const confirmed = confirm(`¿Eliminar ${item.name}?`);
+    if (!confirmed) return;
 
-  const handleNewFileClick = (folderPath: string = '') => {
-    setCreateFileModal({ visible: true, folderPath });
-    setContextMenu((prev) => ({ ...prev, visible: false }));
-  };
+    const success = await deleteFile(
+      currentRepo.owner.login,
+      currentRepo.name,
+      item.path,
+      `Delete ${item.name}`,
+      item.sha,
+      currentRepo.default_branch
+    );
 
-  const getContextOptions = (node: FileTreeNode) => {
-    if (node.type === 'folder') {
-      return [
-        {
-          label: '📄 New File',
-          onClick: () => handleNewFileClick(node.path),
-        },
-        {
-          label: '📋 Copy Path',
-          onClick: () => {
-            navigator.clipboard.writeText(node.path);
-            setContextMenu((prev) => ({ ...prev, visible: false }));
-          },
-        },
-      ];
-    }
-
-    return [
-      {
-        label: '✏️ Rename',
-        onClick: () => handleRenameClick(node),
-      },
-      {
-        label: '🗑️ Delete',
-        onClick: () => handleDeleteClick(node),
-      },
-      {
-        label: '📋 Copy Path',
-        onClick: () => {
-          navigator.clipboard.writeText(node.path);
-          setContextMenu((prev) => ({ ...prev, visible: false }));
-        },
-      },
-    ];
-  };
-
-  const handleCreateFile = async () => {
-    if (!newFileName.trim() || !currentRepo) return;
-
-    setIsCreating(true);
-    try {
-      await createFile(
-        currentRepo.owner.login,
-        currentRepo.name,
-        createFileModal.folderPath,
-        newFileName,
-        currentRepo.default_branch
-      );
-
+    if (success) {
+      // Refresh tree
       await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
-
-      setCreateFileModal({ visible: false, folderPath: '' });
-      setNewFileName('');
-    } catch (error) {
-      console.error('Error creating file:', error);
-    } finally {
-      setIsCreating(false);
     }
+    
+    setContextMenu(null);
   };
 
-  const handleRenameFile = async () => {
-    if (!renameValue.trim() || !renameModal.node || !currentRepo) return;
+  const handleRenameSubmit = async () => {
+    if (!isRenaming || !currentRepo) return;
 
-    const node = renameModal.node;
-    const parentPath = node.path.split('/').slice(0, -1).join('/');
-    const newPath = parentPath ? `${parentPath}/${renameValue}` : renameValue;
+    const item = findNodeByPath(fileTree, isRenaming);
+    if (!item || !item.sha) return;
 
-    // Check if new name is same as old name
-    if (newPath === node.path) {
-      setRenameModal({ visible: false });
-      setRenameValue('');
-      return;
+    const newPath = item.path.replace(item.name, renameValue);
+
+    const success = await renameFile(
+      currentRepo.owner.login,
+      currentRepo.name,
+      item.path,
+      newPath,
+      `Rename ${item.name} to ${renameValue}`,
+      item.sha,
+      currentRepo.default_branch
+    );
+
+    if (success) {
+      await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
     }
 
-    setIsRenaming(true);
-    try {
-      const success = await renameFile(
-        currentRepo.owner.login,
-        currentRepo.name,
-        node.path,
-        newPath,
-        `Rename ${node.name} to ${renameValue}`,
-        node.sha!,
-        currentRepo.default_branch
-      );
+    setIsRenaming(null);
+    setRenameValue('');
+  };
 
-      if (success) {
-        setRenameModal({ visible: false });
-        setRenameValue('');
-
-        // Refresh the file tree immediately
-        await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
-      } else {
-        alert('Failed to rename file. Please check if a file with that name already exists.');
+  const findNodeByPath = (nodes: FileNode[], path: string): FileNode | null => {
+    for (const node of nodes) {
+      if (node.path === path) return node;
+      if (node.children) {
+        const found = findNodeByPath(node.children, path);
+        if (found) return found;
       }
-    } catch (error: any) {
-      console.error('Error renaming file:', error);
-      alert(`Error renaming file: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsRenaming(false);
     }
+    return null;
   };
 
-  const handleDeleteFile = async () => {
-    if (!deleteModal.node || !currentRepo) return;
-
-    const node = deleteModal.node;
-    setIsDeleting(true);
-
-    try {
-      await deleteFile(
-        currentRepo.owner.login,
-        currentRepo.name,
-        node.path,
-        `Delete ${node.name}`,
-        node.sha!,
-        currentRepo.default_branch
-      );
-
-      setDeleteModal({ visible: false });
-
-      setTimeout(() => {
-        fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
-      }, 800);
-    } catch (error) {
-      console.error('Error deleting file:', error);
-    } finally {
-      setIsDeleting(false);
-    }
+  const getLanguageFromFileName = (fileName: string): string => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    const langMap: Record<string, string> = {
+      'js': 'javascript',
+      'ts': 'typescript',
+      'jsx': 'javascript',
+      'tsx': 'typescript',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c',
+      'cs': 'csharp',
+      'go': 'go',
+      'rs': 'rust',
+      'php': 'php',
+      'rb': 'ruby',
+      'html': 'html',
+      'css': 'css',
+      'json': 'json',
+      'md': 'markdown',
+      'sh': 'shell',
+    };
+    return langMap[ext || ''] || 'plaintext';
   };
 
-  const handleRefresh = () => {
-    if (currentRepo) {
-      fetchRepoTree(
-        currentRepo.owner.login,
-        currentRepo.name,
-        currentRepo.default_branch
-      );
-    }
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    
+    // Iconos por extensión
+    const iconMap: Record<string, string> = {
+      'js': '📜',
+      'ts': '🔷',
+      'jsx': '⚛️',
+      'tsx': '⚛️',
+      'py': '🐍',
+      'java': '☕',
+      'html': '🌐',
+      'css': '🎨',
+      'json': '📋',
+      'md': '📝',
+      'xml': '📄',
+      'yml': '⚙️',
+      'yaml': '⚙️',
+      'sh': '🖥️',
+      'bat': '🖥️',
+      'git': '🌿',
+      'png': '🖼️',
+      'jpg': '🖼️',
+      'svg': '🎨',
+    };
+
+    return iconMap[ext || ''] || '📄';
   };
 
-  const renderNode = (node: FileTreeNode, depth = 0): React.ReactNode => {
-    const isExpanded = expandedFolders.has(node.path);
-    const paddingLeft = 8 + depth * 12;
+  const renderTree = (nodes: FileNode[], level: number = 0) => {
+    return nodes.map((node) => (
+      <div key={node.path}>
+        <div
+          className="flex items-center gap-1 px-2 py-1 text-sm cursor-pointer hover:bg-white/5 group"
+          style={{ paddingLeft: `${level * 12 + 8}px` }}
+          onClick={() => node.type === 'folder' ? toggleFolder(node.path) : handleFileClick(node)}
+          onContextMenu={(e) => handleContextMenu(e, node)}
+        >
+          {node.type === 'folder' && (
+            expandedFolders.has(node.path) 
+              ? <VscChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: theme.colors.foregroundMuted }} />
+              : <VscChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: theme.colors.foregroundMuted }} />
+          )}
+          
+          {node.type === 'folder' ? (
+            expandedFolders.has(node.path)
+              ? <VscFolderOpened className="w-4 h-4 flex-shrink-0" style={{ color: theme.colors.foreground }} />
+              : <VscFolder className="w-4 h-4 flex-shrink-0" style={{ color: theme.colors.foreground }} />
+          ) : (
+            <span className="text-base flex-shrink-0">{getFileIcon(node.name)}</span>
+          )}
 
-    if (node.type === 'folder') {
-      return (
-        <div key={node.path}>
-          <div
-            onClick={() => toggleFolder(node.path)}
-            onContextMenu={(e) => showContextMenu(e, node)}
-            className={`
-              flex items-center gap-1.5 px-2 py-1 cursor-pointer
-              select-none transition-colors
-              ${theme === 'dark'
-                ? 'hover:bg-[#2a2a2a] text-[#cccccc]'
-                : 'hover:bg-[#e8e8e8] text-[#1e1e1e]'
-              }
-            `}
-            style={{ paddingLeft: `${paddingLeft}px` }}
-          >
-            {isExpanded ? (
-              <VscChevronDown className="w-3 h-3 flex-shrink-0" />
-            ) : (
-              <VscChevronRight className="w-3 h-3 flex-shrink-0" />
-            )}
-            <div className="flex-shrink-0">
-              {getFileIcon('folder', isExpanded)}
-            </div>
-            <span className="text-sm truncate">{node.name}</span>
-          </div>
-          {isExpanded && node.children && (
-            <div>
-              {node.children.map((child) => renderNode(child, depth + 1))}
-            </div>
+          {isRenaming === node.path ? (
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={handleRenameSubmit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit();
+                if (e.key === 'Escape') setIsRenaming(null);
+              }}
+              className="flex-1 bg-transparent border-none outline-none text-sm"
+              style={{ color: theme.colors.foreground }}
+              autoFocus
+            />
+          ) : (
+            <span 
+              className="flex-1 truncate"
+              style={{ color: theme.colors.foreground }}
+            >
+              {node.name}
+            </span>
           )}
         </div>
-      );
-    }
 
-    return (
-      <div
-        key={node.path}
-        onClick={() => handleFileClick(node)}
-        onContextMenu={(e) => showContextMenu(e, node)}
-        className={`
-          flex items-center gap-1.5 px-2 py-1 cursor-pointer
-          select-none transition-colors
-          ${theme === 'dark'
-            ? 'hover:bg-[#2a2a2a] text-[#cccccc]'
-            : 'hover:bg-[#e8e8e8] text-[#1e1e1e]'
-          }
-        `}
-        style={{ paddingLeft: `${paddingLeft + 16}px` }}
-      >
-        <div className="flex-shrink-0">
-          {getFileIcon(node.name)}
-        </div>
-        <span className="text-sm truncate">{node.name}</span>
+        {node.type === 'folder' && expandedFolders.has(node.path) && node.children && (
+          renderTree(node.children, level + 1)
+        )}
       </div>
-    );
+    ));
+  };
+
+  const refreshTree = async () => {
+    if (!currentRepo) return;
+    await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
   };
 
   if (!currentRepo) {
     return (
-      <div
-        className={`
-          flex flex-col items-center justify-center h-full p-4
-          ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
-        `}
-      >
-        <p className="text-xs text-center">No repository connected</p>
-      </div>
-    );
-  }
-
-  if (isLoadingFiles) {
-    return (
-      <div
-        className={`
-          flex items-center justify-center h-32
-          ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
-        `}
-      >
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          <span className="text-xs">Loading files...</span>
-        </div>
+      <div className="flex flex-col items-center justify-center h-full p-4 text-center" style={{ color: theme.colors.foregroundMuted }}>
+        <p className="text-sm mb-4">No hay repositorio conectado</p>
+        <p className="text-xs">Conecta un repositorio de GitHub para comenzar</p>
       </div>
     );
   }
 
   return (
-    <>
-      {/* Header */}
-      <div
-        className={`
-          flex items-center justify-between px-3 py-2 border-b
-          ${theme === 'dark' ? 'border-[#2d2d2d]' : 'border-[#e5e5e5]'}
-        `}
-      >
-        <span
-          className={`
-            text-xs font-semibold uppercase tracking-wide
-            ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
-          `}
-        >
+    <div className="flex flex-col h-full">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-2 py-1 border-b" style={{ borderColor: theme.colors.sidebarBorder }}>
+        <span className="text-xs font-medium" style={{ color: theme.colors.foregroundMuted }}>
           {currentRepo.name}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex gap-1">
           <button
-            onClick={() => handleNewFileClick('')}
-            title="New File"
-            className={`
-              p-1 rounded transition-colors
-              ${theme === 'dark'
-                ? 'hover:bg-[#2a2a2a] text-[#cccccc]'
-                : 'hover:bg-[#e8e8e8] text-[#1e1e1e]'
-              }
-            `}
+            onClick={refreshTree}
+            className="p-1 rounded hover:bg-white/10"
+            title="Actualizar"
           >
-            <VscNewFile className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleRefresh}
-            title="Refresh"
-            className={`
-              p-1 rounded transition-colors
-              ${theme === 'dark'
-                ? 'hover:bg-[#2a2a2a] text-[#cccccc]'
-                : 'hover:bg-[#e8e8e8] text-[#1e1e1e]'
-              }
-            `}
-          >
-            <VscRefresh className="w-4 h-4" />
+            <VscRefresh className="w-4 h-4" style={{ color: theme.colors.foreground }} />
           </button>
         </div>
       </div>
 
-      {/* File tree */}
-      <div className="overflow-y-auto flex-1">
-        {fileTree.length === 0 ? (
-          <div
-            className={`
-              flex flex-col items-center justify-center p-4
-              ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
-            `}
-          >
-            <p className="text-xs mb-3">No files found</p>
-            <button
-              onClick={() => handleNewFileClick('')}
-              className={`
-                text-xs px-3 py-1.5 rounded
-                ${theme === 'dark'
-                  ? 'bg-[#0e639c] hover:bg-[#1177bb] text-white'
-                  : 'bg-[#0066b8] hover:bg-[#005a9e] text-white'
-                }
-              `}
-            >
-              Create File
-            </button>
-          </div>
+      {/* File Tree */}
+      <div className="flex-1 overflow-y-auto">
+        {fileTree.length > 0 ? (
+          renderTree(fileTree)
         ) : (
-          <div className="py-1">
-            {fileTree.map((node) => renderNode(node))}
+          <div className="p-4 text-center" style={{ color: theme.colors.foregroundMuted }}>
+            <p className="text-sm">El repositorio está vacío</p>
           </div>
         )}
       </div>
 
       {/* Context Menu */}
-      <ContextMenu
-        visible={contextMenu.visible}
-        position={contextMenu.position}
-        options={contextMenu.node ? getContextOptions(contextMenu.node) : []}
-        onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
-      />
-
-      {/* Modals */}
-      {createFileModal.visible && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div
-            className={`
-              w-full max-w-md rounded-lg p-6
-              ${theme === 'dark'
-                ? 'bg-[#252526] border border-[#2d2d2d]'
-                : 'bg-white border border-[#e5e5e5]'
-              }
-            `}
-          >
-            <h2
-              className={`
-                text-lg font-semibold mb-4
-                ${theme === 'dark' ? 'text-white' : 'text-[#1e1e1e]'}
-              `}
-            >
-              New File
-            </h2>
-            <input
-              type="text"
-              value={newFileName}
-              onChange={(e) => setNewFileName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateFile()}
-              placeholder="filename.ext"
-              autoFocus
-              className={`
-                w-full px-3 py-2 rounded border mb-4
-                ${theme === 'dark'
-                  ? 'bg-[#3c3c3c] border-[#2d2d2d] text-white'
-                  : 'bg-white border-[#e5e5e5] text-[#1e1e1e]'
-                }
-              `}
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setCreateFileModal({ visible: false, folderPath: '' });
-                  setNewFileName('');
-                }}
-                className={`
-                  px-4 py-2 rounded text-sm
-                  ${theme === 'dark'
-                    ? 'bg-[#3c3c3c] hover:bg-[#4c4c4c] text-white'
-                    : 'bg-[#e8e8e8] hover:bg-[#d0d0d0] text-[#1e1e1e]'
-                  }
-                `}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateFile}
-                disabled={isCreating || !newFileName.trim()}
-                className={`
-                  px-4 py-2 rounded text-sm
-                  ${theme === 'dark'
-                    ? 'bg-[#0e639c] hover:bg-[#1177bb] text-white'
-                    : 'bg-[#0066b8] hover:bg-[#005a9e] text-white'
-                  }
-                  disabled:opacity-50
-                `}
-              >
-                {isCreating ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: 'Renombrar',
+              onClick: () => handleRename(contextMenu.item)
+            },
+            {
+              label: 'Eliminar',
+              onClick: () => handleDelete(contextMenu.item),
+              danger: true
+            }
+          ]}
+        />
       )}
-
-      {renameModal.visible && renameModal.node && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div
-            className={`
-              w-full max-w-md rounded-lg p-6
-              ${theme === 'dark'
-                ? 'bg-[#252526] border border-[#2d2d2d]'
-                : 'bg-white border border-[#e5e5e5]'
-              }
-            `}
-          >
-            <h2
-              className={`
-                text-lg font-semibold mb-4
-                ${theme === 'dark' ? 'text-white' : 'text-[#1e1e1e]'}
-              `}
-            >
-              Rename File
-            </h2>
-            <input
-              type="text"
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRenameFile()}
-              autoFocus
-              className={`
-                w-full px-3 py-2 rounded border mb-4
-                ${theme === 'dark'
-                  ? 'bg-[#3c3c3c] border-[#2d2d2d] text-white'
-                  : 'bg-white border-[#e5e5e5] text-[#1e1e1e]'
-                }
-              `}
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setRenameModal({ visible: false });
-                  setRenameValue('');
-                }}
-                className={`
-                  px-4 py-2 rounded text-sm
-                  ${theme === 'dark'
-                    ? 'bg-[#3c3c3c] hover:bg-[#4c4c4c] text-white'
-                    : 'bg-[#e8e8e8] hover:bg-[#d0d0d0] text-[#1e1e1e]'
-                  }
-                `}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRenameFile}
-                disabled={isRenaming || !renameValue.trim()}
-                className={`
-                  px-4 py-2 rounded text-sm
-                  ${theme === 'dark'
-                    ? 'bg-[#0e639c] hover:bg-[#1177bb] text-white'
-                    : 'bg-[#0066b8] hover:bg-[#005a9e] text-white'
-                  }
-                  disabled:opacity-50
-                `}
-              >
-                {isRenaming ? 'Renaming...' : 'Rename'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {deleteModal.visible && deleteModal.node && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div
-            className={`
-              w-full max-w-md rounded-lg p-6
-              ${theme === 'dark'
-                ? 'bg-[#252526] border border-red-500/50'
-                : 'bg-white border border-red-500/50'
-              }
-            `}
-          >
-            <h2 className="text-lg font-semibold mb-4 text-red-500">
-              Delete File
-            </h2>
-            <p
-              className={`
-                mb-4 text-sm
-                ${theme === 'dark' ? 'text-[#cccccc]' : 'text-[#1e1e1e]'}
-              `}
-            >
-              Are you sure you want to delete <strong>{deleteModal.node.name}</strong>?
-              This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDeleteModal({ visible: false })}
-                className={`
-                  px-4 py-2 rounded text-sm
-                  ${theme === 'dark'
-                    ? 'bg-[#3c3c3c] hover:bg-[#4c4c4c] text-white'
-                    : 'bg-[#e8e8e8] hover:bg-[#d0d0d0] text-[#1e1e1e]'
-                  }
-                `}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteFile}
-                disabled={isDeleting}
-                className="px-4 py-2 rounded text-sm bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

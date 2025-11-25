@@ -1,7 +1,14 @@
-'use client';
-
+"use client";
 import React from 'react';
-import { VscError, VscWarning, VscSourceControl } from 'react-icons/vsc';
+import { 
+  VscError, 
+  VscWarning, 
+  VscSourceControl, 
+  VscFeedback,
+  VscBell,
+  VscRemote
+} from 'react-icons/vsc';
+import { useTheme } from '@/contexts/ThemeContext';
 import { StatusBarInfo } from '@/types/editor';
 
 interface StatusBarProps {
@@ -9,76 +16,70 @@ interface StatusBarProps {
   theme?: 'dark' | 'light';
 }
 
-export default function StatusBar({ info, theme = 'dark' }: StatusBarProps) {
-  const {
-    lineNumber,
-    columnNumber,
-    language,
-    encoding,
-    eol,
-    gitBranch,
-    errors,
-    warnings,
-  } = info;
+export default function StatusBar({ info, theme: legacyTheme = 'dark' }: StatusBarProps) {
+  const theme = useTheme();
 
   return (
-    <div
-      className={`
-        flex items-center justify-between px-4 py-0
-        h-[22px] text-xs
-        ${theme === 'dark'
-          ? 'bg-[#007ACC] text-white'
-          : 'bg-[#0066b8] text-white'
-        }
-      `}
+    <div 
+      className="flex items-center justify-between h-6 px-3 text-xs border-t"
+      style={{ 
+        backgroundColor: theme.colors.statusBarBackground || '#007ACC',
+        color: theme.colors.statusBarForeground || '#ffffff',
+        borderColor: theme.colors.borderColor
+      }}
     >
-      {/* Left section */}
-      <div className="flex items-center gap-4">
-        {/* Git branch */}
-        {gitBranch && (
+      {/* Left Section */}
+      <div className="flex items-center gap-3">
+        {/* Git Branch */}
+        {info.gitBranch && (
           <div className="flex items-center gap-1 cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
-            <VscSourceControl className="h-3 w-3" />
-            <span>{gitBranch}</span>
+            <VscSourceControl className="w-4 h-4" />
+            <span>{info.gitBranch}</span>
           </div>
         )}
 
         {/* Errors */}
-        {errors > 0 && (
+        {info.errors > 0 && (
           <div className="flex items-center gap-1 cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
-            <VscError className="h-3 w-3" />
-            <span>{errors}</span>
+            <VscError className="w-4 h-4" />
+            <span>{info.errors}</span>
           </div>
         )}
 
         {/* Warnings */}
-        {warnings > 0 && (
+        {info.warnings > 0 && (
           <div className="flex items-center gap-1 cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
-            <VscWarning className="h-3 w-3" />
-            <span>{warnings}</span>
+            <VscWarning className="w-4 h-4" />
+            <span>{info.warnings}</span>
           </div>
         )}
       </div>
 
-      {/* Right section */}
-      <div className="flex items-center gap-4">
-        {/* Line and column */}
-        <div className="cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
-          Ln {lineNumber}, Col {columnNumber}
+      {/* Right Section */}
+      <div className="flex items-center gap-3">
+        {/* Line & Column */}
+        <div className="flex items-center gap-1 cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
+          <span>Ln {info.lineNumber}, Col {info.columnNumber}</span>
         </div>
 
         {/* Language */}
         <div className="cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
-          {language}
+          <span>{info.language.toUpperCase()}</span>
         </div>
 
         {/* Encoding */}
         <div className="cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
-          {encoding}
+          <span>{info.encoding}</span>
         </div>
 
         {/* EOL */}
         <div className="cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded">
-          {eol}
+          <span>{info.eol}</span>
+        </div>
+
+        {/* Notifications */}
+        <div className="cursor-pointer hover:bg-white/10 p-1 rounded">
+          <VscBell className="w-4 h-4" />
         </div>
       </div>
     </div>

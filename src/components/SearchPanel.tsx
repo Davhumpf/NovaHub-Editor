@@ -83,7 +83,7 @@ export default function SearchPanel({ theme: legacyTheme = 'dark' }: SearchPanel
           </div>
         </div>
 
-        {/* Replace Toggle */}
+        {/* Replace Input */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowReplace(!showReplace)}
@@ -192,17 +192,4 @@ export default function SearchPanel({ theme: legacyTheme = 'dark' }: SearchPanel
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full" style={{ color: theme.colors.foregroundMuted }}>
-              <p className="text-sm">No se encontraron resultados</p>
-            </div>
-          )
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full p-4 text-center" style={{ color: theme.colors.foregroundMuted }}>
-            <VscSearch className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-sm">Buscar en archivos</p>
-            <p className="text-xs mt-2">Ingresa un término de búsqueda para comenzar</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+              <p className="text-sm">No se encontraron
