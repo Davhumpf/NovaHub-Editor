@@ -53,12 +53,14 @@ export default function MonacoEditor({
     editorInstanceRef.current = editor;
 
     // Configure TypeScript/JavaScript
-    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-      jsx: monaco.languages.typescript.JsxEmit.React,
-      target: monaco.languages.typescript.ScriptTarget.ES2020,
+    const typescriptLanguage = (monaco.languages as any).typescript;
+
+    typescriptLanguage?.typescriptDefaults.setCompilerOptions({
+      jsx: typescriptLanguage.JsxEmit.React,
+      target: typescriptLanguage.ScriptTarget.ES2020,
       allowNonTsExtensions: true,
-      moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-      module: monaco.languages.typescript.ModuleKind.CommonJS,
+      moduleResolution: typescriptLanguage.ModuleResolutionKind.NodeJs,
+      module: typescriptLanguage.ModuleKind.CommonJS,
       noEmit: true,
       esModuleInterop: true,
       allowJs: true,
@@ -68,21 +70,21 @@ export default function MonacoEditor({
       allowSyntheticDefaultImports: true,
     });
 
-    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-      target: monaco.languages.typescript.ScriptTarget.ES2020,
+    typescriptLanguage?.javascriptDefaults.setCompilerOptions({
+      target: typescriptLanguage.ScriptTarget.ES2020,
       allowNonTsExtensions: true,
       allowJs: true,
       noEmit: true,
     });
 
     // Reduce diagnostics noise
-    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+    typescriptLanguage?.typescriptDefaults.setDiagnosticsOptions({
       noSemanticValidation: true,
       noSyntaxValidation: false,
       noSuggestionDiagnostics: true,
     });
 
-    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+    typescriptLanguage?.javascriptDefaults.setDiagnosticsOptions({
       noSemanticValidation: true,
       noSyntaxValidation: false,
       noSuggestionDiagnostics: true,
@@ -94,7 +96,7 @@ export default function MonacoEditor({
     });
 
     // Listen for cursor position changes
-    const cursorDisposable = editor.onDidChangeCursorPosition((e) => {
+    const cursorDisposable = editor.onDidChangeCursorPosition((e: monaco.editor.ICursorPositionChangedEvent) => {
       onCursorPositionChange?.(e.position.lineNumber, e.position.column);
     });
 
