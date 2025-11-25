@@ -172,49 +172,12 @@ body {
   position: relative;
 }
 
-/* Custom scrollbar for editor components */
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: var(--theme-border, #1b2535) transparent;
+/* Hidden scrollbar utility (keeps scrolling active) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--theme-accent, #34e39c), var(--theme-border, #1b2535));
-  border-radius: 999px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--theme-accent-hover, #46f0ad), var(--theme-border, #1b2535));
-}
-
-/* File tree styles */
-.file-tree-container {
-  scrollbar-width: thin;
-  scrollbar-color: var(--theme-border, #1b2535) transparent;
-}
-
-.file-tree-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.file-tree-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.file-tree-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--theme-accent, #34e39c), var(--theme-border, #1b2535));
-  border-radius: 999px;
-}
-
-.file-tree-container::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--theme-accent-hover, #46f0ad), var(--theme-border, #1b2535));
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
