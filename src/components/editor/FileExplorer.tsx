@@ -3,13 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   VscChevronRight, 
   VscChevronDown, 
-  VscFile, 
-  VscFolder, 
+  VscFile,
+  VscFolder,
   VscFolderOpened,
   VscRefresh,
-  VscNewFile,
-  VscNewFolder,
-  VscClose
+  VscNewFile
 } from 'react-icons/vsc';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -46,6 +44,17 @@ export default function FileExplorer({ theme: legacyTheme = 'dark' }: FileExplor
   const [isRenaming, setIsRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
+  const [showNewFileInput, setShowNewFileInput] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
+  const [isCreatingFile, setIsCreatingFile] = useState(false);
+
+  // Load the selected repository tree automatically
+  useEffect(() => {
+    if (!currentRepo) return;
+
+    fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+    setExpandedFolders(new Set(['/']));
+  }, [currentRepo, fetchRepoTree]);
 
   // Build file tree from flat file list
   useEffect(() => {
@@ -131,7 +140,7 @@ export default function FileExplorer({ theme: legacyTheme = 'dark' }: FileExplor
         id: `github-${file.path}`,
         name: file.name,
         path: file.path,
-        content: atob(content.content), // Decode base64
+        content: content.content,
         language: getLanguageFromFileName(file.name),
         lastModified: new Date(),
       });
@@ -323,6 +332,27 @@ export default function FileExplorer({ theme: legacyTheme = 'dark' }: FileExplor
     await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
   };
 
+  const handleCreateFile = async () => {
+    if (!currentRepo || !newFileName.trim()) return;
+
+    setIsCreatingFile(true);
+    try {
+      await createFile(
+        currentRepo.owner.login,
+        currentRepo.name,
+        '',
+        newFileName.trim(),
+        currentRepo.default_branch
+      );
+
+      setNewFileName('');
+      setShowNewFileInput(false);
+      await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+    } finally {
+      setIsCreatingFile(false);
+    }
+  };
+
   if (!currentRepo) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-4 text-center" style={{ color: theme.colors.foregroundMuted }}>
@@ -341,6 +371,13 @@ export default function FileExplorer({ theme: legacyTheme = 'dark' }: FileExplor
         </span>
         <div className="flex gap-1">
           <button
+            onClick={() => setShowNewFileInput((prev) => !prev)}
+            className="p-1 rounded hover:bg-white/10"
+            title="Nuevo archivo"
+          >
+            <VscNewFile className="w-4 h-4" style={{ color: theme.colors.foreground }} />
+          </button>
+          <button
             onClick={refreshTree}
             className="p-1 rounded hover:bg-white/10"
             title="Actualizar"
@@ -352,6 +389,54 @@ export default function FileExplorer({ theme: legacyTheme = 'dark' }: FileExplor
 
       {/* File Tree */}
       <div className="flex-1 overflow-y-auto">
+        {showNewFileInput && (
+          <div className="px-2 py-2 border-b" style={{ borderColor: theme.colors.sidebarBorder }}>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateFile();
+                  if (e.key === 'Escape') setShowNewFileInput(false);
+                }}
+                placeholder="Nombre del archivo"
+                className="flex-1 px-2 py-1 text-sm rounded border outline-none"
+                style={{
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  borderColor: theme.colors.sidebarBorder,
+                  color: theme.colors.foreground,
+                }}
+                autoFocus
+              />
+              <button
+                onClick={handleCreateFile}
+                disabled={isCreatingFile || !newFileName.trim()}
+                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                style={{
+                  backgroundColor: theme.colors.accent,
+                  color: '#ffffff',
+                }}
+              >
+                {isCreatingFile ? 'Creando...' : 'Crear'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowNewFileInput(false);
+                  setNewFileName('');
+                }}
+                className="px-2 py-1 text-xs rounded"
+                style={{
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  color: theme.colors.foreground,
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {fileTree.length > 0 ? (
           renderTree(fileTree)
         ) : (
