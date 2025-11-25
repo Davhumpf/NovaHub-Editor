@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { VscClose, VscAdd, VscTrash, VscChevronDown, VscChevronUp } from 'react-icons/vsc';
+import { VscClose, VscAdd, VscTrash } from 'react-icons/vsc';
 
 // Import xterm dynamically to avoid SSR issues
 let Terminal: any;
@@ -24,6 +24,7 @@ interface TerminalInstance {
   terminal: any;
   fitAddon: any;
   shell: TerminalShell;
+  path: string;
 }
 
 interface TerminalProps {
@@ -44,11 +45,105 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
     { id: 'cmd', label: 'CMD' },
   ];
 
-  // Create a new terminal instance
+  const formatPrompt = (shell: TerminalShell, path: string) => {
+    switch (shell) {
+      case 'powershell':
+        return `PS ${path}> `;
+      case 'cmd':
+        return `${path}> `;
+      default:
+        return `novahub@local:${path}$ `;
+    }
+  };
+
+  const defaultPathForShell = (shell: TerminalShell) => {
+    if (shell === 'bash') return '/home/novahub';
+    if (shell === 'powershell') return 'C\\Users\\NovaHub';
+    return 'C\\Users\\NovaHub';
+  };
+
+  const handleCommand = (
+    terminal: any,
+    command: string,
+    shell: TerminalShell,
+    currentPath: string,
+  ): { newPath: string } => {
+    const [rawCmd, ...args] = command.split(' ');
+    const cmd = rawCmd.toLowerCase();
+
+    const respondUnknown = () => {
+      if (shell === 'cmd') {
+        terminal.writeln(`'${rawCmd}' is not recognized as an internal or external command.`);
+      } else if (shell === 'powershell') {
+        terminal.writeln(`El término '${rawCmd}' no se reconoce como nombre de un cmdlet.`);
+      } else {
+        terminal.writeln(`${rawCmd}: command not found`);
+      }
+    };
+
+    if (['clear', 'cls'].includes(cmd)) {
+      terminal.clear();
+      return { newPath: currentPath };
+    }
+
+    if (cmd === 'help') {
+      terminal.writeln('Comandos rápidos disponibles:');
+      terminal.writeln('  help                Ver esta ayuda');
+      terminal.writeln('  clear / cls         Limpiar la terminal');
+      terminal.writeln('  ls / dir            Listar el directorio actual');
+      terminal.writeln('  pwd                 Mostrar ruta actual');
+      terminal.writeln('  cd <ruta>           Cambiar ruta simulada');
+      terminal.writeln('  echo <texto>        Imprimir texto');
+      terminal.writeln('  date                Mostrar fecha actual');
+      terminal.writeln('');
+      return { newPath: currentPath };
+    }
+
+    if (cmd === 'echo') {
+      terminal.writeln(args.join(' '));
+      return { newPath: currentPath };
+    }
+
+    if (cmd === 'date') {
+      terminal.writeln(new Date().toString());
+      return { newPath: currentPath };
+    }
+
+    if (cmd === 'pwd') {
+      terminal.writeln(currentPath);
+      return { newPath: currentPath };
+    }
+
+    if (cmd === 'ls' || cmd === 'dir') {
+      terminal.writeln('app/   src/   package.json   README.md');
+      terminal.writeln('node_modules/   public/   tsconfig.json');
+      return { newPath: currentPath };
+    }
+
+    if (cmd === 'cd') {
+      if (!args[0]) {
+        terminal.writeln(currentPath);
+        return { newPath: currentPath };
+      }
+      const nextPath = args[0] === '..'
+        ? currentPath.split(/[\\/]/).slice(0, -1).join(shell === 'bash' ? '/' : '\\') || (shell === 'bash' ? '/' : 'C:')
+        : args[0].startsWith('/') || args[0].includes(':')
+          ? args[0]
+          : `${currentPath}${shell === 'bash' ? '/' : '\\'}${args[0]}`;
+
+      terminal.writeln(`Ruta actualizada a ${nextPath}`);
+      return { newPath: nextPath };
+    }
+
+    respondUnknown();
+    return { newPath: currentPath };
+  };
+
   const createTerminal = (shell: TerminalShell = preferredShell) => {
     if (!Terminal || !FitAddon) return;
 
     const terminalId = `terminal-${Date.now()}`;
+    let workingDir = defaultPathForShell(shell);
     const terminal = new Terminal({
       theme: theme === 'dark' ? {
         background: '#1e1e1e',
@@ -86,53 +181,40 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
 
-    // Write welcome message
-    terminal.writeln('Welcome to NovaHub Editor Terminal');
-    terminal.writeln('This is a simulated terminal environment.');
+    terminal.writeln(`Perfil ${shell.toUpperCase()} iniciado`);
+    terminal.writeln(`Ruta actual: ${workingDir}`);
+    terminal.writeln('Comandos básicos disponibles: help, clear/cls, ls/dir, cd, pwd');
     terminal.writeln('');
-    terminal.write('$ ');
+    terminal.write(formatPrompt(shell, workingDir));
 
-    // Handle input
     let currentLine = '';
     terminal.onData((data: string) => {
       const code = data.charCodeAt(0);
 
-      // Handle enter key
       if (code === 13) {
         terminal.writeln('');
         if (currentLine.trim()) {
-          // Simulate command execution
-          handleCommand(terminal, currentLine.trim());
+          const result = handleCommand(terminal, currentLine.trim(), shell, workingDir);
+          workingDir = result.newPath;
         }
         currentLine = '';
-        terminal.write('$ ');
-      }
-      // Handle backspace
-      else if (code === 127) {
+        terminal.write(formatPrompt(shell, workingDir));
+      } else if (code === 127) {
         if (currentLine.length > 0) {
           currentLine = currentLine.slice(0, -1);
           terminal.write('\b \b');
         }
-      }
-      // Handle regular characters
-      else if (code >= 32) {
+      } else if (code >= 32) {
         currentLine += data;
         terminal.write(data);
       }
     });
 
-    const newTerminal: TerminalInstance = {
-      id: terminalId,
-      title: `${shell.toUpperCase()} ${terminals.length + 1}`,
-      terminal,
-      fitAddon,
-      shell,
-    };
+    setTerminals((prev) => [
+      ...prev,
+      { id: terminalId, title: shell.toUpperCase(), terminal, fitAddon, shell, path: workingDir },
+    ]);
 
-    setTerminals((prev) => [...prev, newTerminal]);
-    setActiveTerminalId(terminalId);
-
-    // Mount the terminal after state update
     setTimeout(() => {
       if (terminalContainerRef.current) {
         const container = terminalContainerRef.current.querySelector(`#${terminalId}`);
@@ -144,50 +226,19 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
     }, 0);
   };
 
-  // Simulate command execution
-  const handleCommand = (terminal: any, command: string) => {
-    const [cmd, ...args] = command.split(' ');
-
-    switch (cmd.toLowerCase()) {
-      case 'clear':
-        terminal.clear();
-        break;
-      case 'help':
-        terminal.writeln('Available commands:');
-        terminal.writeln('  clear  - Clear the terminal');
-        terminal.writeln('  help   - Show this help message');
-        terminal.writeln('  echo   - Echo text back');
-        terminal.writeln('  date   - Show current date and time');
-        terminal.writeln('');
-        break;
-      case 'echo':
-        terminal.writeln(args.join(' '));
-        break;
-      case 'date':
-        terminal.writeln(new Date().toString());
-        break;
-      default:
-        terminal.writeln(`Command not found: ${cmd}`);
-        terminal.writeln(`Type 'help' for available commands.`);
-        break;
-    }
-  };
-
-  // Create initial terminal
   useEffect(() => {
     if (isVisible && terminals.length === 0 && Terminal && FitAddon) {
       createTerminal();
     }
   }, [isVisible, Terminal, FitAddon]);
 
-  // Resize terminals when container size changes
   useEffect(() => {
     const handleResize = () => {
       terminals.forEach((t) => {
         try {
           t.fitAddon?.fit();
         } catch (e) {
-          // Ignore resize errors
+          // ignore
         }
       });
     };
@@ -202,8 +253,8 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
       terminal.terminal.dispose();
       setTerminals((prev) => prev.filter((t) => t.id !== id));
       if (activeTerminalId === id) {
-        const remainingTerminals = terminals.filter((t) => t.id !== id);
-        setActiveTerminalId(remainingTerminals[0]?.id || null);
+        const remaining = terminals.filter((t) => t.id !== id);
+        setActiveTerminalId(remaining[0]?.id || null);
       }
     }
   };
@@ -214,17 +265,15 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
     <div
       className={`
         flex flex-col h-full
-        ${theme === 'dark' ? 'bg-[#1e1e1e]' : 'bg-white'}
+        ${theme === 'dark' ? 'bg-[#0f172a]' : 'bg-white'}
       `}
     >
-      {/* Terminal tabs header */}
       <div
         className={`
           flex items-center justify-between border-b
-          ${theme === 'dark' ? 'bg-[#252526] border-[#2d2d2d]' : 'bg-[#f3f3f3] border-[#e5e5e5]'}
+          ${theme === 'dark' ? 'bg-[#111827] border-[#1f2937]' : 'bg-[#f3f3f3] border-[#e5e5e5]'}
         `}
       >
-        {/* Main tabs */}
         <div className="flex items-center">
           {(['terminal', 'output', 'problems', 'debug'] as const).map((tab) => (
             <button
@@ -248,7 +297,6 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
           ))}
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-1 px-2">
           {activeTab === 'terminal' && (
             <>
@@ -257,7 +305,7 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
                 onChange={(e) => setPreferredShell(e.target.value as TerminalShell)}
                 className={`text-xs px-2 py-1 rounded border focus:outline-none ${
                   theme === 'dark'
-                    ? 'bg-[#1e1e1e] border-[#2d2d2d] text-[#cccccc]'
+                    ? 'bg-[#0f172a] border-[#1f2937] text-[#cccccc]'
                     : 'bg-white border-[#d4d4d4] text-[#1e1e1e]'
                 }`}
                 aria-label="Seleccionar shell"
@@ -271,13 +319,11 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
               <button
                 onClick={() => createTerminal(preferredShell)}
                 title="New Terminal"
-                className={`
-                  p-1.5 rounded transition-colors
-                  ${theme === 'dark'
-                    ? 'hover:bg-[#2a2a2a] text-[#cccccc]'
-                    : 'hover:bg-[#e8e8e8] text-[#1e1e1e]'
-                  }
-                `}
+                className={`${
+                  theme === 'dark'
+                    ? 'p-1.5 rounded hover:bg-[#1f2937] text-[#cccccc]'
+                    : 'p-1.5 rounded hover:bg-[#e8e8e8] text-[#1e1e1e]'
+                }`}
               >
                 <VscAdd className="w-4 h-4" />
               </button>
@@ -285,13 +331,11 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
                 <button
                   onClick={() => activeTerminalId && closeTerminal(activeTerminalId)}
                   title="Kill Terminal"
-                  className={`
-                    p-1.5 rounded transition-colors
-                    ${theme === 'dark'
-                      ? 'hover:bg-[#2a2a2a] text-[#cccccc]'
-                      : 'hover:bg-[#e8e8e8] text-[#1e1e1e]'
-                    }
-                  `}
+                  className={`${
+                    theme === 'dark'
+                      ? 'p-1.5 rounded hover:bg-[#1f2937] text-[#cccccc]'
+                      : 'p-1.5 rounded hover:bg-[#e8e8e8] text-[#1e1e1e]'
+                  }`}
                 >
                   <VscTrash className="w-4 h-4" />
                 </button>
@@ -301,25 +345,22 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
           <button
             onClick={onClose}
             title="Close Panel"
-            className={`
-              p-1.5 rounded transition-colors
-              ${theme === 'dark'
-                ? 'hover:bg-[#2a2a2a] text-[#cccccc]'
-                : 'hover:bg-[#e8e8e8] text-[#1e1e1e]'
-              }
-            `}
+            className={`${
+              theme === 'dark'
+                ? 'p-1.5 rounded hover:bg-[#1f2937] text-[#cccccc]'
+                : 'p-1.5 rounded hover:bg-[#e8e8e8] text-[#1e1e1e]'
+            }`}
           >
             <VscClose className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Terminal instances tabs (for terminal tab only) */}
       {activeTab === 'terminal' && terminals.length > 0 && (
         <div
           className={`
             flex items-center gap-1 px-2 py-1 border-b
-            ${theme === 'dark' ? 'bg-[#252526] border-[#2d2d2d]' : 'bg-[#f3f3f3] border-[#e5e5e5]'}
+            ${theme === 'dark' ? 'bg-[#0b1322] border-[#1f2937]' : 'bg-[#f3f3f3] border-[#e5e5e5]'}
           `}
         >
           {terminals.map((t) => (
@@ -330,10 +371,10 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
                 flex items-center gap-2 px-3 py-1 rounded text-xs
                 ${activeTerminalId === t.id
                   ? theme === 'dark'
-                    ? 'bg-[#1e1e1e] text-white'
+                    ? 'bg-[#111827] text-white'
                     : 'bg-white text-[#1e1e1e]'
                   : theme === 'dark'
-                    ? 'text-[#858585] hover:bg-[#2a2a2a]'
+                    ? 'text-[#858585] hover:bg-[#1f2937]'
                     : 'text-[#6c6c6c] hover:bg-[#e8e8e8]'
                 }
               `}
@@ -353,7 +394,6 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
         </div>
       )}
 
-      {/* Terminal content */}
       <div className="flex-1 overflow-hidden" ref={terminalContainerRef}>
         {activeTab === 'terminal' ? (
           <>
@@ -371,7 +411,7 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
                   ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
                 `}
               >
-                <p className="text-sm mb-4">No terminal instances</p>
+                <p className="text-sm mb-4">No hay instancias de terminal</p>
                 <button
                   onClick={() => createTerminal()}
                   className={`
@@ -382,7 +422,7 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
                     }
                   `}
                 >
-                  Create Terminal
+                  Crear Terminal
                 </button>
               </div>
             )}
@@ -394,7 +434,7 @@ export default function TerminalPanel({ theme = 'dark', isVisible, onClose }: Te
               ${theme === 'dark' ? 'text-[#858585]' : 'text-[#6c6c6c]'}
             `}
           >
-            <p className="text-sm">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} panel (Coming soon)</p>
+            <p className="text-sm">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} panel (Próximamente)</p>
           </div>
         )}
       </div>

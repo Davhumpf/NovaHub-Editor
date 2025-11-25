@@ -58,6 +58,11 @@ interface EditorState {
   openFiles: FileItem[];
   activeFileId: string | null;
   recentFiles: FileItem[];
+  workspaceFiles: FileItem[];
+  workspaceName: string | null;
+
+  // Terminal
+  terminalVisible: boolean;
 
   // Terminal
   terminalVisible: boolean;
@@ -75,6 +80,8 @@ interface EditorState {
   notes: NoteItem[];
 
   // Actions for files
+  addFile: (file: FileItem) => void;
+  setWorkspaceFiles: (files: FileItem[], workspaceName: string) => void;
   openFile: (file: FileItem) => void;
   closeFile: (fileId: string) => void;
   updateFileContent: (fileId: string, content: string) => void;
@@ -144,6 +151,8 @@ export const useEditorStore = create<EditorState>()(
       openFiles: [],
       activeFileId: null,
       recentFiles: [],
+      workspaceFiles: [],
+      workspaceName: null,
       terminalVisible: false,
       githubToken: null,
       githubRepos: [],
@@ -155,6 +164,32 @@ export const useEditorStore = create<EditorState>()(
       notes: [],
 
       // File actions
+      addFile: (file: FileItem) => {
+        const { workspaceFiles } = get();
+        const existing = workspaceFiles.find((f) => f.id === file.id);
+        const nextFile: FileItem = {
+          ...file,
+          isDirty: file.isDirty ?? false,
+          lastModified: file.lastModified ?? new Date(),
+        };
+
+        if (existing) {
+          set({
+            workspaceFiles: workspaceFiles.map((f) => (f.id === file.id ? nextFile : f)),
+          });
+          return;
+        }
+
+        set({ workspaceFiles: [...workspaceFiles, nextFile] });
+      },
+
+      setWorkspaceFiles: (files: FileItem[], workspaceName: string) => {
+        set({
+          workspaceFiles: files,
+          workspaceName,
+        });
+      },
+
       openFile: (file: FileItem) => {
         const { openFiles, recentFiles } = get();
         const normalizedFile: FileItem = {
@@ -237,7 +272,7 @@ export const useEditorStore = create<EditorState>()(
       },
 
       renameFile: (fileId: string, newName: string) => {
-        const { openFiles, recentFiles, activeFileId } = get();
+        const { openFiles, recentFiles, activeFileId, workspaceFiles } = get();
         let updatedActiveId = activeFileId;
 
         const rename = (file: FileItem) => {
@@ -248,7 +283,9 @@ export const useEditorStore = create<EditorState>()(
           const newPath = pathParts.join('/');
           const newId = file.id.startsWith('github-')
             ? `github-${newPath}`
-            : file.id;
+            : file.id.startsWith('local-')
+              ? `local-${newPath}`
+              : file.id;
 
           if (updatedActiveId === fileId) {
             updatedActiveId = newId;
@@ -264,19 +301,22 @@ export const useEditorStore = create<EditorState>()(
 
         const updatedOpen = openFiles.map(rename);
         const updatedRecent = recentFiles.map(rename);
+        const updatedWorkspace = workspaceFiles.map(rename);
 
         set({
           openFiles: updatedOpen,
           recentFiles: updatedRecent,
+          workspaceFiles: updatedWorkspace,
           activeFileId: updatedActiveId,
         });
       },
 
       deleteFile: (fileId: string) => {
-        const { openFiles, recentFiles, activeFileId } = get();
+        const { openFiles, recentFiles, activeFileId, workspaceFiles } = get();
 
         const newOpenFiles = openFiles.filter(f => f.id !== fileId);
         const newRecentFiles = recentFiles.filter(f => f.id !== fileId);
+        const newWorkspaceFiles = workspaceFiles.filter(f => f.id !== fileId);
 
         let newActiveFileId = activeFileId;
         if (activeFileId === fileId) {
@@ -286,6 +326,7 @@ export const useEditorStore = create<EditorState>()(
         set({
           openFiles: newOpenFiles,
           recentFiles: newRecentFiles,
+          workspaceFiles: newWorkspaceFiles,
           activeFileId: newActiveFileId,
         });
       },

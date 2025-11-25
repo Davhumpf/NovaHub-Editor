@@ -9,7 +9,7 @@ import {
   VscRefresh,
   VscNewFile
 } from 'react-icons/vsc';
-import { useEditorStore } from '@/store/useEditorStore';
+import { useEditorStore, type FileItem } from '@/store/useEditorStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import ContextMenu from './ContextMenu';
 
@@ -33,6 +33,9 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
     repoFolders,
     currentRepo,
     openFile,
+    workspaceFiles,
+    workspaceName,
+    addFile,
     fetchFileContent,
     fetchRepoTree,
     deleteRepoFile,
@@ -53,6 +56,7 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FileNode | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const hasLocalWorkspace = workspaceFiles.length > 0;
 
   // Seleccionar automáticamente el nombre al renombrar
   useEffect(() => {
@@ -69,50 +73,111 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
     setExpandedFolders(new Set(['/']));
   }, [currentRepo, fetchRepoTree]);
 
-  // Construir árbol anidado
+  // Construir árbol anidado para repositorios o proyectos locales
   useEffect(() => {
-    if (!repoFiles || repoFiles.length === 0) return;
+    if (currentRepo) {
+      if (!repoFiles || repoFiles.length === 0) {
+        setFileTree([]);
+        return;
+      }
+
+      const tree: FileNode[] = [];
+      const folderMap = new Map<string, FileNode>();
+
+      repoFolders?.forEach((folder) => {
+        const parts = folder.path.split('/').filter(Boolean);
+        let currentPath = '';
+
+        parts.forEach((part, index) => {
+          const previousPath = currentPath;
+          currentPath = currentPath ? `${currentPath}/${part}` : part;
+
+          if (!folderMap.has(currentPath)) {
+            const folderNode: FileNode = {
+              name: part,
+              path: currentPath,
+              type: 'folder',
+              children: []
+            };
+
+            folderMap.set(currentPath, folderNode);
+
+            if (index === 0) {
+              tree.push(folderNode);
+            } else if (folderMap.has(previousPath)) {
+              folderMap.get(previousPath)!.children!.push(folderNode);
+            }
+          }
+        });
+      });
+
+      repoFiles.forEach((file) => {
+        const parts = file.path.split('/').filter(Boolean);
+        const fileName = parts[parts.length - 1];
+        const folderPath = parts.slice(0, -1).join('/');
+
+        const fileNode: FileNode = {
+          name: fileName,
+          path: file.path,
+          type: 'file',
+          sha: file.sha
+        };
+
+        if (folderPath && folderMap.has(folderPath)) {
+          folderMap.get(folderPath)!.children!.push(fileNode);
+        } else if (!folderPath) {
+          tree.push(fileNode);
+        }
+      });
+
+      setFileTree(tree);
+      return;
+    }
+
+    if (!hasLocalWorkspace) {
+      setFileTree([]);
+      return;
+    }
 
     const tree: FileNode[] = [];
     const folderMap = new Map<string, FileNode>();
 
-    repoFolders?.forEach((folder) => {
-      const parts = folder.path.split('/').filter(Boolean);
-      let currentPath = '';
-
-      parts.forEach((part, index) => {
-        const previousPath = currentPath;
-        currentPath = currentPath ? `${currentPath}/${part}` : part;
-
-        if (!folderMap.has(currentPath)) {
-          const folderNode: FileNode = {
-            name: part,
-            path: currentPath,
-            type: 'folder',
-            children: []
-          };
-
-          folderMap.set(currentPath, folderNode);
-
-          if (index === 0) {
-            tree.push(folderNode);
-          } else if (folderMap.has(previousPath)) {
-            folderMap.get(previousPath)!.children!.push(folderNode);
-          }
-        }
-      });
-    });
-
-    repoFiles.forEach((file) => {
+    workspaceFiles.forEach((file: FileItem) => {
       const parts = file.path.split('/').filter(Boolean);
       const fileName = parts[parts.length - 1];
       const folderPath = parts.slice(0, -1).join('/');
 
+      if (folderPath) {
+        const folders = folderPath.split('/');
+        let currentPath = '';
+
+        folders.forEach((part, index) => {
+          const previousPath = currentPath;
+          currentPath = currentPath ? `${currentPath}/${part}` : part;
+
+          if (!folderMap.has(currentPath)) {
+            const folderNode: FileNode = {
+              name: part,
+              path: currentPath,
+              type: 'folder',
+              children: []
+            };
+
+            folderMap.set(currentPath, folderNode);
+
+            if (index === 0) {
+              tree.push(folderNode);
+            } else if (folderMap.has(previousPath)) {
+              folderMap.get(previousPath)!.children!.push(folderNode);
+            }
+          }
+        });
+      }
+
       const fileNode: FileNode = {
         name: fileName,
         path: file.path,
-        type: 'file',
-        sha: file.sha
+        type: 'file'
       };
 
       if (folderPath && folderMap.has(folderPath)) {
@@ -123,7 +188,7 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
     });
 
     setFileTree(tree);
-  }, [repoFiles, repoFolders]);
+  }, [currentRepo, repoFiles, repoFolders, hasLocalWorkspace, workspaceFiles]);
 
   const toggleFolder = (path: string) => {
     setExpandedFolders(prev => {
@@ -138,20 +203,26 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
   };
 
   const handleFileClick = async (file: FileNode) => {
-    if (!currentRepo) return;
+    if (currentRepo) {
+      const content = await fetchFileContent(currentRepo.owner.login, currentRepo.name, file.path);
 
-    const content = await fetchFileContent(currentRepo.owner.login, currentRepo.name, file.path);
+      if (content) {
+        openFile({
+          id: `github-${file.path}`,
+          name: file.name,
+          path: file.path,
+          content: content.content,
+          language: getLanguageFromFileName(file.name),
+          lastModified: new Date(),
+          isDirty: false,
+        });
+      }
+      return;
+    }
 
-    if (content) {
-      openFile({
-        id: `github-${file.path}`,
-        name: file.name,
-        path: file.path,
-        content: content.content,
-        language: getLanguageFromFileName(file.name),
-        lastModified: new Date(),
-        isDirty: false,
-      });
+    const localFile = workspaceFiles.find((f) => f.path === file.path);
+    if (localFile) {
+      openFile(localFile);
     }
   };
 
@@ -174,43 +245,50 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
   };
 
   const handleRenameSubmit = async () => {
-    if (!isRenaming || !currentRepo || !renameValue.trim()) {
+    if (!isRenaming || !renameValue.trim()) {
       setIsRenaming(null);
       setRenameValue('');
       return;
     }
 
     const item = findNodeByPath(fileTree, isRenaming);
-    if (!item || !item.sha) {
+    if (!item) {
       setIsRenaming(null);
       return;
     }
 
-    const newPath = item.path.replace(item.name, renameValue.trim());
+    if (currentRepo && item.sha) {
+      const newPath = item.path.replace(item.name, renameValue.trim());
 
-    const success = await renameRepoFile(
-      currentRepo.owner.login,
-      currentRepo.name,
-      item.path,
-      newPath,
-      `Rename ${item.name} to ${renameValue}`,
-      item.sha,
-      currentRepo.default_branch
-    );
+      const success = await renameRepoFile(
+        currentRepo.owner.login,
+        currentRepo.name,
+        item.path,
+        newPath,
+        `Rename ${item.name} to ${renameValue}`,
+        item.sha,
+        currentRepo.default_branch
+      );
 
-    if (success) {
-      renameFile(`github-${item.path}`, renameValue.trim());
-      await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+      if (success) {
+        renameFile(`github-${item.path}`, renameValue.trim());
+        await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+      }
+
+      setIsRenaming(null);
+      setRenameValue('');
+      return;
     }
 
+    renameFile(`local-${item.path}`, renameValue.trim());
     setIsRenaming(null);
     setRenameValue('');
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget || !currentRepo) return;
+    if (!deleteTarget) return;
 
-    if (deleteTarget.sha) {
+    if (currentRepo && deleteTarget.sha && currentRepo.owner) {
       const success = await deleteRepoFile(
         currentRepo.owner.login,
         currentRepo.name,
@@ -224,10 +302,15 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
         setShowDeleteModal(false);
         return;
       }
+
+      deleteFile(`github-${deleteTarget.path}`);
+      await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+      return;
     }
 
-    deleteFile(`github-${deleteTarget.path}`);
-    await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+    deleteFile(`local-${deleteTarget.path}`);
     setShowDeleteModal(false);
     setDeleteTarget(null);
   };
@@ -352,46 +435,67 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
   };
 
   const refreshTree = async () => {
-    if (!currentRepo) return;
-    await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
-  };
-
-  const handleCreateFile = async () => {
-    if (!currentRepo || !newFileName.trim()) return;
-
-    setIsCreatingFile(true);
-    try {
-      await createFile(
-        currentRepo.owner.login,
-        currentRepo.name,
-        '',
-        newFileName.trim(),
-        currentRepo.default_branch
-      );
-
-      setNewFileName('');
-      setShowNewFileInput(false);
+    if (currentRepo) {
       await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
-    } finally {
-      setIsCreatingFile(false);
     }
   };
 
-  if (!currentRepo) {
+  const handleCreateFile = async () => {
+    if (!newFileName.trim()) return;
+
+    if (currentRepo) {
+      setIsCreatingFile(true);
+      try {
+        await createFile(
+          currentRepo.owner.login,
+          currentRepo.name,
+          '',
+          newFileName.trim(),
+          currentRepo.default_branch
+        );
+
+        setNewFileName('');
+        setShowNewFileInput(false);
+        await fetchRepoTree(currentRepo.owner.login, currentRepo.name, currentRepo.default_branch);
+      } finally {
+        setIsCreatingFile(false);
+      }
+      return;
+    }
+
+    const path = newFileName.trim();
+    const nameOnly = path.split('/').pop() || path;
+    const file: FileItem = {
+      id: `local-${path}`,
+      name: nameOnly,
+      path,
+      content: '',
+      language: getLanguageFromFileName(nameOnly),
+      lastModified: new Date(),
+      isDirty: false,
+    };
+    addFile(file);
+    setNewFileName('');
+    setShowNewFileInput(false);
+  };
+
+  if (!currentRepo && !hasLocalWorkspace) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-4 text-center" style={{ color: theme.colors.foregroundMuted }}>
         <p className="text-sm mb-4">No hay repositorio conectado</p>
-        <p className="text-xs">Conecta un repositorio de GitHub para comenzar</p>
+        <p className="text-xs">Conecta GitHub o crea un proyecto para comenzar</p>
       </div>
     );
   }
+
+  const title = currentRepo ? currentRepo.name : workspaceName || 'Proyecto local';
 
   return (
     <div className="flex flex-col h-full">
       {/* Barra de acciones */}
       <div className="flex items-center justify-between px-2 py-1 border-b" style={{ borderColor: theme.colors.sidebarBorder }}>
         <span className="text-xs font-medium" style={{ color: theme.colors.foregroundMuted }}>
-          {currentRepo.name}
+          {title}
         </span>
         <div className="flex gap-1 items-center">
           <button
@@ -410,21 +514,16 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
           >
             <VscNewFile className="w-4 h-4" style={{ color: theme.colors.foreground }} />
           </button>
-          <button
-            onClick={() => setShowNewFileInput((prev) => !prev)}
-            className="p-1 rounded hover:bg-white/10"
-            title="Nuevo archivo"
-          >
-            <VscNewFile className="w-4 h-4" style={{ color: theme.colors.foreground }} />
-          </button>
-          <button
-            onClick={refreshTree}
-            className="p-1 rounded hover:bg-white/10"
-            title="Actualizar"
-            aria-label="Actualizar árbol"
-          >
-            <VscRefresh className="w-4 h-4" style={{ color: theme.colors.foreground }} />
-          </button>
+          {currentRepo && (
+            <button
+              onClick={refreshTree}
+              className="p-1 rounded hover:bg-white/10"
+              title="Actualizar"
+              aria-label="Actualizar árbol"
+            >
+              <VscRefresh className="w-4 h-4" style={{ color: theme.colors.foreground }} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -482,7 +581,7 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
           renderTree(fileTree)
         ) : (
           <div className="p-4 text-center" style={{ color: theme.colors.foregroundMuted }}>
-            <p className="text-sm">El repositorio está vacío</p>
+            <p className="text-sm">El espacio está vacío</p>
           </div>
         )}
       </div>
@@ -532,8 +631,8 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
                 Cancelar
               </button>
               <button
-                className="px-3 py-2 rounded"
-                style={{ backgroundColor: '#b3261e', color: '#ffffff' }}
+                className="px-3 py-2 rounded text-white"
+                style={{ backgroundColor: '#b91c1c' }}
                 onClick={confirmDelete}
               >
                 Eliminar
