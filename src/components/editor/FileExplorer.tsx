@@ -411,6 +411,13 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
             <VscNewFile className="w-4 h-4" style={{ color: theme.colors.foreground }} />
           </button>
           <button
+            onClick={() => setShowNewFileInput((prev) => !prev)}
+            className="p-1 rounded hover:bg-white/10"
+            title="Nuevo archivo"
+          >
+            <VscNewFile className="w-4 h-4" style={{ color: theme.colors.foreground }} />
+          </button>
+          <button
             onClick={refreshTree}
             className="p-1 rounded hover:bg-white/10"
             title="Actualizar"
