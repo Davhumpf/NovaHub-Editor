@@ -5,6 +5,7 @@ import { Theme, ThemeMode, darkTheme, lightTheme } from '@/types/theme';
 
 interface ThemeContextType {
   theme: Theme;
+  colors: Theme['colors'];
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
   setCustomTheme: (theme: Theme) => void;
@@ -109,6 +110,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     <ThemeContext.Provider
       value={{
         theme,
+        colors: theme.colors,
         themeMode,
         setThemeMode,
         setCustomTheme,
