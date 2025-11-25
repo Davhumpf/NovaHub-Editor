@@ -374,8 +374,7 @@ export default function ExtensionsPanel({ theme: legacyTheme = 'dark' }: Extensi
               </button>
             </div>
           </div>
-        ))}
-      </div>
+        ))}      </div>
     </div>
   );
 }
