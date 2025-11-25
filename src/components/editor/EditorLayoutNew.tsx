@@ -156,6 +156,13 @@ export default function EditorLayoutNew() {
       targetRepo.owner.login,
       targetRepo.name,
       targetRepo.default_branch
+  const handleRepoChange = () => {
+    if (!currentRepo) return;
+
+    fetchRepoTree(
+      currentRepo.owner.login,
+      currentRepo.name,
+      currentRepo.default_branch
     );
     setActiveView('explorer');
   };
@@ -204,6 +211,62 @@ export default function EditorLayoutNew() {
                 className="h-5 w-5 rounded"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
+              NovaHub Editor
+            </span>
+          </div>
+          {activeFile && (
+            <>
+              <span style={{ color: theme.colors.foregroundMuted }}>—</span>
+              <span
+                className="text-sm"
+                style={{ color: theme.colors.titleBarForeground }}
+              >
+                {activeFile.name}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Right Controls */}
+        <div className="flex items-center gap-2">
+          {/* GitHub connection */}
+          <button
+            onClick={() => setShowGitHubConnect(true)}
+            className="px-3 py-1 rounded text-xs font-medium transition-colors"
+            style={{
+              backgroundColor: theme.colors.backgroundTertiary,
+              color: theme.colors.titleBarForeground,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            {currentRepo ? (
+              <span className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                {currentRepo.owner.login}/{currentRepo.name}
+              </span>
+            ) : (
+              'Conectar GitHub'
+            )}
+          </button>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded transition-opacity hover:opacity-70"
+            style={{ color: theme.colors.titleBarForeground }}
+            title={`Switch to ${themeMode === 'dark' ? 'light' : 'dark'} theme`}
+          >
+            <VscColorMode className="w-4 h-4" />
+          </button>
+
+          {/* User Menu */}
+          {isAuthenticated && user ? (
+            <div className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-2 px-2 py-1 rounded"
+                style={{
+                  backgroundColor: user.tier === 'premium' ? '#7c3aed20' : theme.colors.backgroundTertiary,
+                  border: user.tier === 'premium' ? '1px solid #7c3aed' : 'none',
                 }}
               />
               <div className="flex flex-col leading-tight">
@@ -251,6 +314,7 @@ export default function EditorLayoutNew() {
                   {session ? 'Seleccionar repositorio' : 'Conectar GitHub'}
                 </span>
               )}
+              Premium Sign In
             </button>
 
             {/* Theme Toggle */}

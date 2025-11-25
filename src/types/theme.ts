@@ -179,6 +179,77 @@ export const darkTheme: Theme = {
     listActiveForeground: '#e7f0ff',
     listHoverBackground: '#131f31',
     listHoverForeground: '#dbe6f5',
+    background: '#1e1e1e',
+    backgroundSecondary: '#252526',
+    backgroundTertiary: '#2d2d2d',
+
+    foreground: '#cccccc',
+    foregroundSecondary: '#c5c5c5',
+    foregroundMuted: '#858585',
+
+    border: '#2d2d2d',
+    borderLight: '#3c3c3c',
+    borderColor: '#2d2d2d',
+
+    accent: '#007acc',
+    accentHover: '#1177bb',
+    accentActive: '#0e639c',
+
+    success: '#4ec9b0',
+    warning: '#cca700',
+    error: '#f48771',
+    info: '#75beff',
+
+    activityBarBackground: '#333333',
+    activityBarForeground: '#ffffff',
+    activityBarBorder: '#2d2d2d',
+    activityBarActiveBackground: '#1e1e1e',
+    activityBarInactiveForeground: '#858585',
+
+    sidebarBackground: '#252526',
+    sidebarForeground: '#cccccc',
+    sidebarBorder: '#2d2d2d',
+
+    editorBackground: '#1e1e1e',
+    editorForeground: '#d4d4d4',
+    editorLineHighlight: '#2a2a2a',
+    editorSelection: '#264f78',
+
+    titleBarBackground: '#323233',
+    titleBarForeground: '#cccccc',
+    titleBarBorder: '#2d2d2d',
+
+    statusBarBackground: '#007acc',
+    statusBarForeground: '#ffffff',
+    statusBarBorder: '#007acc',
+
+    terminalBackground: '#1e1e1e',
+    terminalForeground: '#cccccc',
+    terminalBorder: '#2d2d2d',
+
+    tabActiveBackground: '#1e1e1e',
+    tabActiveForeground: '#ffffff',
+    tabInactiveBackground: '#2d2d2d',
+    tabInactiveForeground: '#858585',
+    tabBorder: '#252526',
+
+    inputBackground: '#3c3c3c',
+    inputForeground: '#cccccc',
+    inputBorder: '#2d2d2d',
+    inputPlaceholder: '#858585',
+
+    buttonBackground: '#0e639c',
+    buttonForeground: '#ffffff',
+    buttonHoverBackground: '#1177bb',
+
+    dropdownBackground: '#3c3c3c',
+    dropdownForeground: '#cccccc',
+    dropdownBorder: '#2d2d2d',
+
+    listActiveBackground: '#094771',
+    listActiveForeground: '#ffffff',
+    listHoverBackground: '#2a2a2a',
+    listHoverForeground: '#cccccc',
   },
 };
 
@@ -199,6 +270,9 @@ export const lightTheme: Theme = {
     border: '#d5dfec',
     borderLight: '#c7d4e6',
     borderColor: '#d5dfec',
+    border: '#e5e5e5',
+    borderLight: '#d0d0d0',
+    borderColor: '#e5e5e5',
 
     accent: '#0fb981',
     accentHover: '#0dc78b',
