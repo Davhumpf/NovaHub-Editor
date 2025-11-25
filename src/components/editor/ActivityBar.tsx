@@ -10,6 +10,7 @@ import {
   VscSettingsGear,
 } from 'react-icons/vsc';
 import { ActivityBarView } from '@/types/editor';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ActivityBarProps {
   activeView: ActivityBarView;
@@ -24,7 +25,8 @@ interface ActivityItem {
   shortcut?: string;
 }
 
-export default function ActivityBar({ activeView, onViewChange, theme = 'dark' }: ActivityBarProps) {
+export default function ActivityBar({ activeView, onViewChange }: ActivityBarProps) {
+  const { theme } = useTheme();
   const activities: ActivityItem[] = [
     {
       id: 'explorer',
@@ -60,40 +62,34 @@ export default function ActivityBar({ activeView, onViewChange, theme = 'dark' }
 
   return (
     <div
-      className={`
-        flex flex-col h-full w-12
-        ${theme === 'dark' ? 'bg-[#333333]' : 'bg-[#f3f3f3]'}
-        border-r
-        ${theme === 'dark' ? 'border-[#2d2d2d]' : 'border-[#e5e5e5]'}
-      `}
+      className="flex flex-col h-full w-[56px] border-r backdrop-blur-sm"
+      style={{
+        background: `linear-gradient(180deg, ${theme.colors.activityBarBackground} 0%, ${theme.colors.background} 100%)`,
+        borderColor: theme.colors.activityBarBorder,
+        boxShadow: 'inset -1px 0 0 rgba(255,255,255,0.04)',
+      }}
     >
       {/* Activity icons */}
-      <div className="flex-1 flex flex-col items-center py-2">
+      <div className="flex-1 flex flex-col items-center py-2 gap-1">
         {activities.map((activity) => (
           <button
             key={activity.id}
             onClick={() => onViewChange(activity.id)}
             title={`${activity.label} (${activity.shortcut})`}
-            className={`
-              relative w-12 h-12 flex items-center justify-center
-              transition-colors
-              ${activeView === activity.id
-                ? theme === 'dark'
-                  ? 'text-white'
-                  : 'text-[#1e1e1e]'
-                : theme === 'dark'
-                  ? 'text-[#858585] hover:text-white'
-                  : 'text-[#6c6c6c] hover:text-[#1e1e1e]'
-              }
-            `}
+            className="relative w-12 h-12 flex items-center justify-center transition-all rounded-xl"
+            style={{
+              color: activeView === activity.id
+                ? theme.colors.accent
+                : theme.colors.activityBarInactiveForeground,
+              backgroundColor: activeView === activity.id ? `${theme.colors.accent}15` : 'transparent',
+              boxShadow: activeView === activity.id ? '0 10px 30px rgba(52, 227, 156, 0.12)' : 'none',
+            }}
           >
             {/* Active indicator */}
             {activeView === activity.id && (
               <div
-                className={`
-                  absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8
-                  ${theme === 'dark' ? 'bg-white' : 'bg-[#007ACC]'}
-                `}
+                className="absolute left-1 top-1/2 -translate-y-1/2 w-0.5 h-8 rounded"
+                style={{ backgroundColor: theme.colors.accent }}
               />
             )}
             {activity.icon}
@@ -105,14 +101,8 @@ export default function ActivityBar({ activeView, onViewChange, theme = 'dark' }
       <div className="flex flex-col items-center pb-2">
         <button
           title="Settings"
-          className={`
-            w-12 h-12 flex items-center justify-center
-            transition-colors
-            ${theme === 'dark'
-              ? 'text-[#858585] hover:text-white'
-              : 'text-[#6c6c6c] hover:text-[#1e1e1e]'
-            }
-          `}
+          className="w-12 h-12 flex items-center justify-center transition-colors rounded-xl"
+          style={{ color: theme.colors.activityBarInactiveForeground }}
         >
           <VscSettingsGear className="h-6 w-6" />
         </button>
