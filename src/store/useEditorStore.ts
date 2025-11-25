@@ -61,12 +61,6 @@ interface EditorState {
   workspaceFiles: FileItem[];
   workspaceName: string | null;
 
-  // Terminal
-  terminalVisible: boolean;
-
-  // Terminal
-  terminalVisible: boolean;
-
   // GitHub integration
   githubToken: string | null;
   githubRepos: GitHubRepo[];
@@ -78,6 +72,9 @@ interface EditorState {
 
   // Notes
   notes: NoteItem[];
+
+  // UI state
+  terminalVisible: boolean;
 
   // Actions for files
   addFile: (file: FileItem) => void;
