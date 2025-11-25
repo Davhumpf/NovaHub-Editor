@@ -104,6 +104,24 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
       root.style.setProperty(`--theme-${cssKey}`, value);
     });
+
+    const toRgba = (hex: string, alpha: number) => {
+      const normalized = hex.replace('#', '');
+      const bigint = parseInt(normalized.length === 3 ? normalized.repeat(2) : normalized, 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    const glow = `radial-gradient(circle at 18% 18%, ${toRgba(theme.colors.accent, 0.16)}, transparent 30%),
+      radial-gradient(circle at 82% 0%, ${toRgba(theme.colors.info, 0.18)}, transparent 34%),
+      radial-gradient(circle at 20% 90%, ${toRgba(theme.colors.success, 0.12)}, transparent 32%)`;
+
+    root.style.setProperty('--theme-glow', glow);
+    document.body.style.background = `${glow}, linear-gradient(145deg, ${theme.colors.background} 0%, ${theme.colors.backgroundSecondary} 40%, ${theme.colors.background} 100%)`;
+    document.body.style.color = theme.colors.foreground;
+    document.body.style.transition = 'background-color 200ms ease, color 200ms ease';
   }, [theme]);
 
   return (
