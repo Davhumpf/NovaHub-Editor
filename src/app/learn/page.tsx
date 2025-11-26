@@ -1,9 +1,9 @@
 'use client';
 
-import { useSession, signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getUserProgress, markLessonComplete } from '@/utils/supabase';
+import { useUserStore } from '@/store/useUserStore';
+import AuthModal from '@/components/auth/AuthModal';
 
 // Tipos para el contenido educativo
 interface Lesson {
@@ -234,51 +234,58 @@ const educationalContent: Level[] = [
 ];
 
 export default function LearnPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { user, isAuthenticated } = useUserStore();
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [showSolution, setShowSolution] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      signIn('github', { callbackUrl: '/learn' });
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
     }
-  }, [status]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (session?.user?.githubId) {
-      getUserProgress(session.user.githubId).then((progress) => {
+    if (user?.id) {
+      getUserProgress(user.id).then((progress) => {
         if (progress) {
           setCompletedLessons(progress.completed_lessons || []);
         }
       });
     }
-  }, [session]);
+  }, [user]);
 
   const handleCompleteLesson = async (lessonId: string) => {
-    if (session?.user?.githubId) {
-      const success = await markLessonComplete(session.user.githubId, lessonId);
+    if (user?.id) {
+      const success = await markLessonComplete(user.id, lessonId);
       if (success) {
         setCompletedLessons((prev) => [...prev, lessonId]);
       }
     }
   };
 
-  if (status === 'loading') {
+  if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-zinc-50 via-white to-zinc-50 dark:from-black dark:via-zinc-950 dark:to-black">
-        <div className="text-center">
-          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-zinc-300 border-t-emerald-500 dark:border-zinc-700 dark:border-t-emerald-400" />
-          <p className="text-zinc-600 dark:text-zinc-400">Cargando...</p>
+      <div className="min-h-screen bg-gradient-to-b from-zinc-50 via-white to-zinc-50 dark:from-black dark:via-zinc-950 dark:to-black">
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          initialMode="login"
+        />
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <h1 className="mb-4 text-3xl font-semibold dark:text-white">
+              Inicia sesión para continuar
+            </h1>
+            <p className="text-zinc-600 dark:text-zinc-400">
+              Necesitas una cuenta para acceder a las lecciones
+            </p>
+          </div>
         </div>
       </div>
     );
-  }
-
-  if (!session) {
-    return null;
   }
 
   // Vista de lección individual
