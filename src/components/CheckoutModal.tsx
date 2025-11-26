@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CreditCard, Check, Crown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/api/supabase';
@@ -14,6 +15,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const { user, refreshUserData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     cardNumber: '',
     cardName: '',
@@ -21,7 +23,11 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     cvv: '',
   });
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,8 +80,8 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   };
 
   if (success) {
-    return (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+    return createPortal(
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
         <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-400" />
@@ -83,12 +89,13 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
           <h2 className="text-2xl font-bold text-white mb-2">¡Bienvenido a Premium!</h2>
           <p className="text-gray-400">Tu suscripción ha sido activada exitosamente.</p>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4" onClick={onClose}>
       <div className="bg-gray-900 rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -196,6 +203,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
           </p>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
