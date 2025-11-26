@@ -7,6 +7,7 @@ import { VscAccount, VscColorMode, VscSignOut } from 'react-icons/vsc';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useUserStore } from '@/store/useUserStore';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useResizable } from '@/hooks/useResizable';
 import { useKeyBindings } from '@/hooks/useKeyBindings';
 import { ActivityBarView, StatusBarInfo, EditorTab } from '@/types/editor';
@@ -21,11 +22,13 @@ import AuthModal from '../auth/AuthModal';
 import GitHubConnect from '../GitHubConnect';
 import { GitHubRepo } from '@/store/useEditorStore';
 import ProjectWizard from '../ProjectWizard';
+import { PremiumButton } from '../PremiumButton';
 
 export default function EditorLayoutNew() {
   const { theme, themeMode, setThemeMode } = useTheme();
   const { data: session } = useSession();
   const { user, isAuthenticated, logout } = useUserStore();
+  const { user: authUser, userPlan } = useAuth();
 
   // Convert ThemeMode to legacy theme for components that don't support custom themes yet
   const legacyTheme: 'dark' | 'light' = themeMode === 'light' ? 'light' : 'dark';
@@ -289,6 +292,9 @@ export default function EditorLayoutNew() {
               <VscColorMode className="w-4 h-4" />
             </button>
 
+            {/* Premium Button */}
+            <PremiumButton />
+
             {/* User Menu */}
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2">
@@ -311,7 +317,7 @@ export default function EditorLayoutNew() {
                       {user.name}
                     </span>
                     <span className="text-[11px]" style={{ color: theme.colors.foregroundMuted }}>
-                      {user.tier === 'premium' ? 'Premium' : 'Cuenta gratuita'}
+                      {userPlan?.plan_name === 'premium' ? 'Premium' : 'Cuenta gratuita'}
                     </span>
                   </div>
                 </div>
