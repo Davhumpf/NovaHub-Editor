@@ -479,14 +479,6 @@ export default function FileExplorer({ theme: legacyTheme = 'dark', onCreateProj
     setShowNewFileInput(false);
   };
 
-  if (!currentRepo && !hasLocalWorkspace) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-4 text-center" style={{ color: theme.colors.foregroundMuted }}>
-        <p className="text-sm mb-4">No hay repositorio conectado</p>
-        <p className="text-xs">Conecta GitHub o crea un proyecto para comenzar</p>
-      </div>
-    );
-  }
 
   const title = currentRepo ? currentRepo.name : workspaceName || 'Proyecto local';
 
