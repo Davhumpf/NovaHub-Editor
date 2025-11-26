@@ -134,7 +134,7 @@ function EditorPreview() {
             preview
           </p>
           <p className="font-semibold text-sky-500">ready</p>
-          <p>open in cloud sandbox</p>
+          <p>Vista previa disponible</p>
         </div>
         <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <p className="text-[11px] uppercase tracking-wide text-zinc-400">
@@ -167,9 +167,9 @@ export default function Home() {
             </div>
           </div>
           <div className="hidden items-center gap-3 text-sm font-medium text-zinc-700 sm:flex dark:text-zinc-200">
-            <button className="rounded-full px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-              Roadmap
-            </button>
+            <a href="/learn" className="rounded-full px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              Aprende con nosotros
+            </a>
             <a href="/docs" className="rounded-full px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800">
               Docs
             </a>
@@ -202,9 +202,9 @@ export default function Home() {
               <a href="/docs" className="rounded-full border border-zinc-300 px-5 py-2 text-zinc-800 hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800">
                 Ver historial y notas
               </a>
-              <button className="rounded-full bg-emerald-500/15 px-4 py-2 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-500/20 dark:text-emerald-300 dark:ring-emerald-500/30">
-                Cloud sandbox incluida
-              </button>
+              <a href="/learn" className="rounded-full bg-emerald-500/15 px-4 py-2 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-500/20 dark:text-emerald-300 dark:ring-emerald-500/30">
+                Aprende con nosotros
+              </a>
             </div>
             <div className="grid w-full grid-cols-1 gap-3 text-sm sm:grid-cols-3">
               <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -256,9 +256,6 @@ export default function Home() {
                 gestionados.
               </p>
             </div>
-            <button className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-              Ver plantillas
-            </button>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {languages.map((lang) => (
