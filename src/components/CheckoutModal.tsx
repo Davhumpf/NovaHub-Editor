@@ -25,6 +25,12 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!supabase) {
+      alert('El servicio de autenticación no está disponible. Por favor verifica la configuración.');
+      return;
+    }
+
     setLoading(true);
 
     // Simular procesamiento de pago
@@ -46,7 +52,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
       setSuccess(true);
       await refreshUserData();
-      
+
       // Cerrar el modal después de 2 segundos
       setTimeout(() => {
         onClose();
