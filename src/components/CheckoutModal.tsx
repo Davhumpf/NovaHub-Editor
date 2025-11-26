@@ -26,6 +26,13 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Verificar si el usuario está autenticado
+    if (!user) {
+      alert('Debes iniciar sesión para poder adquirir el plan Premium. Por favor, inicia sesión primero.');
+      onClose();
+      return;
+    }
+
     if (!supabase) {
       alert('El servicio de autenticación no está disponible. Por favor verifica la configuración.');
       return;
@@ -46,7 +53,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
           subscription_status: 'active',
           subscription_date: new Date().toISOString(),
         })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (error) throw error;
 
