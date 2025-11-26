@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getUserProgress, markLessonComplete } from '@/utils/supabase';
@@ -243,9 +243,9 @@ export default function LearnPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/workspace?callbackUrl=/learn');
+      signIn('github', { callbackUrl: '/learn' });
     }
-  }, [status, router]);
+  }, [status]);
 
   useEffect(() => {
     if (session?.user?.githubId) {
