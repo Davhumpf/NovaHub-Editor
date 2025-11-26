@@ -1,13 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
+// Only create client if credentials are available
+let supabase: SupabaseClient | null = null;
+
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+} else {
   console.warn('Supabase credentials not found. Some features may not work.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export { supabase };
 
 // Tipos para el progreso del usuario
 export interface UserProgress {
@@ -20,6 +25,11 @@ export interface UserProgress {
 
 // Funciones de utilidad para el progreso
 export async function getUserProgress(userId: string): Promise<UserProgress | null> {
+  if (!supabase) {
+    console.warn('Supabase client not initialized');
+    return null;
+  }
+
   try {
     const { data, error } = await supabase
       .from('user_progress')
@@ -43,6 +53,11 @@ export async function updateUserProgress(
   userId: string,
   progress: Partial<UserProgress>
 ): Promise<boolean> {
+  if (!supabase) {
+    console.warn('Supabase client not initialized');
+    return false;
+  }
+
   try {
     const { error } = await supabase
       .from('user_progress')
@@ -68,6 +83,11 @@ export async function markLessonComplete(
   userId: string,
   lessonId: string
 ): Promise<boolean> {
+  if (!supabase) {
+    console.warn('Supabase client not initialized');
+    return false;
+  }
+
   try {
     const currentProgress = await getUserProgress(userId);
     const completedLessons = currentProgress?.completed_lessons || [];
